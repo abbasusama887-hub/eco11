@@ -144,20 +144,21 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-MEDIA_URL = "media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 if os.getenv("SUPABASE_STORAGE_ENDPOINT"):
     STORAGES = {
         "default": {
-            "BACKEND": "storages.backends.s3.S3Storage",
+            "BACKEND": "storage_backends.s3.SupabasePublicStorage",
+            
             "OPTIONS": {
-                "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET", "private-documents"),
+                "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET", "media"),
                 "endpoint_url": os.getenv("SUPABASE_STORAGE_ENDPOINT"),
                 "access_key": os.getenv("SUPABASE_STORAGE_ACCESS_KEY", ""),
                 "secret_key": os.getenv("SUPABASE_STORAGE_SECRET_KEY", ""),
-                "region_name": os.getenv("SUPABASE_STORAGE_REGION", "us-east-1"),
-                "querystring_auth": True,
+                "region_name": os.getenv("SUPABASE_STORAGE_REGION", "ap-northeast-2"),
+                "querystring_auth": False,
                 "file_overwrite": False,
             },
         },
