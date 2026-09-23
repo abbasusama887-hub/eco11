@@ -2,12 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    // Allows next/image to fetch and optimize images from the local Django
-    // dev server (127.0.0.1 / localhost). Next.js blocks local IPs by
-    // default as an SSRF protection. Safe here because this only matters
-    // in local development — production will point at a real domain.
     dangerouslyAllowLocalIP: true,
+
     remotePatterns: [
+      // Local Django development
       {
         protocol: "http",
         hostname: "127.0.0.1",
@@ -19,6 +17,13 @@ const nextConfig: NextConfig = {
         hostname: "localhost",
         port: "8000",
         pathname: "/media/**",
+      },
+
+      // Supabase Storage - production
+      {
+        protocol: "https",
+        hostname: "hcpogsaulctxkkhnadpi.supabase.co",
+        pathname: "/storage/v1/object/public/media/**",
       },
     ],
   },
