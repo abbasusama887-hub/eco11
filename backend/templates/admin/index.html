@@ -1,0 +1,117 @@
+{% extends 'admin/base.html' %}
+{% load i18n static unfold admin_dashboard %}
+
+{% block title %}Dashboard | {{ site_title|default:_('Django site admin') }}{% endblock %}
+
+{% block content %}
+{% dashboard_data as dashboard %}
+<div class="ndps-dashboard">
+    <section class="ndps-dashboard__intro">
+        <div>
+            <p class="ndps-eyebrow">Store overview</p>
+            <h1>Good day, {{ user.get_short_name|default:user.username }}</h1>
+            <p class="ndps-muted">Here is what is happening across your store today.</p>
+        </div>
+        <div class="ndps-date-card">
+            <span class="material-symbols-outlined" aria-hidden="true">calendar_today</span>
+            <span>{{ dashboard.today }}</span>
+        </div>
+    </section>
+
+    <section class="ndps-stat-grid" aria-label="Store statistics">
+        <a class="ndps-stat-card ndps-stat-card--dark" href="{% url 'admin:api_order_changelist' %}">
+            <span class="ndps-stat-card__icon material-symbols-outlined" aria-hidden="true">payments</span>
+            <span class="ndps-stat-card__label">Revenue</span>
+            <strong>Rs {{ dashboard.revenue|floatformat:0 }}</strong>
+            <small>All non-cancelled orders</small>
+        </a>
+        <a class="ndps-stat-card" href="{% url 'admin:api_order_changelist' %}">
+            <span class="ndps-stat-card__icon material-symbols-outlined" aria-hidden="true">shopping_bag</span>
+            <span class="ndps-stat-card__label">Orders</span>
+            <strong>{{ dashboard.orders }}</strong>
+            <small>Orders in the database</small>
+        </a>
+        <a class="ndps-stat-card" href="{% url 'admin:api_customer_changelist' %}">
+            <span class="ndps-stat-card__icon material-symbols-outlined" aria-hidden="true">group</span>
+            <span class="ndps-stat-card__label">Customers</span>
+            <strong>{{ dashboard.customers }}</strong>
+            <small>{{ dashboard.users }} active users</small>
+        </a>
+        <a class="ndps-stat-card" href="{% url 'admin:api_product_changelist' %}">
+            <span class="ndps-stat-card__icon material-symbols-outlined" aria-hidden="true">inventory_2</span>
+            <span class="ndps-stat-card__label">Products</span>
+            <strong>{{ dashboard.products }}</strong>
+            <small>{{ dashboard.stock_alerts }} stock alerts pending</small>
+        </a>
+    </section>
+
+    <section class="ndps-dashboard__columns">
+        <article class="ndps-panel ndps-panel--chart">
+            <div class="ndps-panel__header">
+                <div>
+                    <p class="ndps-eyebrow">Performance</p>
+                    <h2>Revenue overview</h2>
+                </div>
+                <a class="ndps-text-link" href="{% url 'admin:api_order_changelist' %}">View orders <span aria-hidden="true">→</span></a>
+            </div>
+            <div class="ndps-chart" aria-label="Revenue for the last six months">
+                {% for month in dashboard.monthly_revenue %}
+                <div class="ndps-chart__column">
+                    <span class="ndps-chart__value">Rs {{ month.value|floatformat:0 }}</span>
+                    <div class="ndps-chart__track"><div class="ndps-chart__bar" style="height: {{ month.height }}%"></div></div>
+                    <span class="ndps-chart__label">{{ month.label }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </article>
+
+        <article class="ndps-panel ndps-panel--activity">
+            <div class="ndps-panel__header">
+                <div>
+                    <p class="ndps-eyebrow">Attention</p>
+                    <h2>Store activity</h2>
+                </div>
+                <span class="material-symbols-outlined ndps-panel__header-icon" aria-hidden="true">insights</span>
+            </div>
+            <div class="ndps-activity-list">
+                <a href="{% url 'admin:api_review_changelist' %}" class="ndps-activity-row"><span class="ndps-activity-row__icon ndps-activity-row__icon--amber material-symbols-outlined">star</span><span><strong>{{ dashboard.reviews_pending }}</strong> reviews awaiting approval</span><span aria-hidden="true">→</span></a>
+                <a href="{% url 'admin:api_stockalert_changelist' %}" class="ndps-activity-row"><span class="ndps-activity-row__icon ndps-activity-row__icon--rose material-symbols-outlined">notifications</span><span><strong>{{ dashboard.stock_alerts }}</strong> back-in-stock alerts pending</span><span aria-hidden="true">→</span></a>
+                <a href="{% url 'admin:api_product_changelist' %}" class="ndps-activity-row"><span class="ndps-activity-row__icon ndps-activity-row__icon--blue material-symbols-outlined">inventory_2</span><span><strong>{{ dashboard.products }}</strong> products in catalog</span><span aria-hidden="true">→</span></a>
+            </div>
+        </article>
+    </section>
+
+    <section class="ndps-dashboard__columns ndps-dashboard__columns--lower">
+        <article class="ndps-panel">
+            <div class="ndps-panel__header">
+                <div><p class="ndps-eyebrow">Latest</p><h2>Recent orders</h2></div>
+                <a class="ndps-text-link" href="{% url 'admin:api_order_changelist' %}">See all <span aria-hidden="true">→</span></a>
+            </div>
+            <div class="ndps-table-wrap">
+                <table class="ndps-table">
+                    <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th></tr></thead>
+                    <tbody>
+                    {% for order in dashboard.recent_orders %}
+                        <tr>
+                            <td><a href="{% url 'admin:api_order_change' order.pk %}">{{ order.order_number }}</a></td>
+                            <td>{{ order.full_name }}</td>
+                            <td>Rs {{ order.total|floatformat:0 }}</td>
+                            <td><span class="ndps-status ndps-status--{{ order.status }}">{{ order.get_status_display }}</span></td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" class="ndps-empty">No orders yet.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </article>
+
+        <article class="ndps-panel ndps-panel--modules">
+            <div class="ndps-panel__header"><div><p class="ndps-eyebrow">Workspace</p><h2>Admin modules</h2></div></div>
+            <div class="ndps-module-list">
+                {% include "unfold/helpers/app_list_default.html" with show_changelinks=True %}
+            </div>
+        </article>
+    </section>
+</div>
+{% endblock %}

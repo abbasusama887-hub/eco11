@@ -1,0 +1,56 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.production
+.env.*.local
+
+# Next.js
+.next/
+out/
+node_modules/
+
+# Django
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Django environment
+venv/
+env/
+.venv/
+
+# Django static/media
+staticfiles/
+media/
+
+# SQLite
+*.sqlite3
+db.sqlite3
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+
+# Python
+.pytest_cache/
+.coverage
+
+# Build
+dist/
+build/
+
+# Secrets
+*.pem
+*.key
+
+Django_Pass.txt
