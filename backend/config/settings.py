@@ -153,14 +153,14 @@ if os.getenv("SUPABASE_STORAGE_ENDPOINT"):
             "BACKEND": "storage_backends.s3.SupabasePublicStorage",
             
             "OPTIONS": {
-                "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET", "media"),
-                "endpoint_url": os.getenv("SUPABASE_STORAGE_ENDPOINT"),
-                "access_key": os.getenv("SUPABASE_STORAGE_ACCESS_KEY", ""),
-                "secret_key": os.getenv("SUPABASE_STORAGE_SECRET_KEY", ""),
-                "region_name": os.getenv("SUPABASE_STORAGE_REGION", "ap-northeast-2"),
-                "querystring_auth": False,
-                "file_overwrite": False,
-            },
+    "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET", "media"),
+    "endpoint_url": os.getenv("SUPABASE_STORAGE_ENDPOINT"),
+    "access_key": os.getenv("SUPABASE_STORAGE_ACCESS_KEY", ""),
+    "secret_key": os.getenv("SUPABASE_STORAGE_SECRET_KEY", ""),
+    "region_name": os.getenv("SUPABASE_STORAGE_REGION", "ap-northeast-2"),
+    "querystring_auth": False,
+    "file_overwrite": False,
+},
         },
         "staticfiles": {
             "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
