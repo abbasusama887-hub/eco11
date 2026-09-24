@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getMyOrders } from "@/app/lib/api";
 import type { CustomerOrder } from "@/app/types/product";
+import { useCart } from "@/app/context/CartContext";
+import { useToast } from "@/app/components/ToastProvider";
 
 const statusLabels: Record<string, string> = {
   pending: "Pending", confirmed: "Confirmed", processing: "Processing", packed: "Packed",
@@ -15,6 +17,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<CustomerOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState("all");
+  const filteredOrders = statusFilter === "all" ? orders : orders.filter((order) => order.status === statusFilter);
 
   useEffect(() => {
     const loadOrders = () => getMyOrders().then(setOrders).catch((err) => setError(err instanceof Error ? err.message : "Could not load orders.")).finally(() => setLoading(false));
@@ -31,6 +35,11 @@ export default function OrdersPage() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Orders</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Track purchases and manage eligible cancellations.</p>
         </header>
+        <div className="mb-6 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Filter orders">
+          {[{ value: "all", label: "All" }, { value: "confirmed", label: "Confirmed" }, { value: "processing", label: "Processing" }, { value: "packed", label: "Packed" }, { value: "out_for_delivery", label: "Out for Delivery" }, { value: "delivered", label: "Delivered" }, { value: "cancelled", label: "Cancelled" }].map((filter) => (
+            <button key={filter.value} type="button" role="tab" aria-selected={statusFilter === filter.value} onClick={() => setStatusFilter(filter.value)} className={`shrink-0 rounded-xl px-3 py-2 text-xs font-semibold transition-colors ${statusFilter === filter.value ? "bg-cyan-500 text-slate-950" : "border border-slate-200 bg-white text-slate-600 hover:border-cyan-300 dark:border-white/10 dark:bg-white/[0.04] dark:text-slate-300"}`}>{filter.label}</button>
+          ))}
+        </div>
         {loading && <OrderSkeleton />}
         {error && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600">{error}</p>}
         {!loading && !error && orders.length === 0 && (
@@ -43,8 +52,9 @@ export default function OrdersPage() {
             <Link href="/shop" className="mt-6 inline-flex rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition-transform hover:-translate-y-0.5">Browse shoes</Link>
           </div>
         )}
+        {!loading && !error && orders.length > 0 && filteredOrders.length === 0 && <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center dark:border-white/15"><p className="text-sm text-slate-500 dark:text-slate-400">No {statusLabels[statusFilter]?.toLowerCase() ?? "matching"} orders found.</p></div>}
         <div className="space-y-4">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <article key={order.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:p-6">
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
@@ -55,7 +65,7 @@ export default function OrdersPage() {
               </div>
               <div className="mt-5 flex flex-wrap items-end justify-between gap-4 border-t border-slate-100 pt-4 dark:border-white/10">
                 <div className="text-sm text-slate-600 dark:text-slate-300"><p>{order.order_items.length} {order.order_items.length === 1 ? "product" : "products"}</p><p className="mt-1 text-xs text-slate-500">{order.delivery_city || order.delivery_address}</p></div>
-                <div className="flex items-center gap-4"><p className="text-lg font-bold">Rs {Number(order.total).toLocaleString()}</p><Link href={`/orders/${order.id}`} className="rounded-xl border border-cyan-300 px-4 py-2 text-xs font-bold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400/40 dark:text-cyan-300 dark:hover:bg-cyan-400/10">View order</Link></div>
+                <div className="flex flex-wrap items-center justify-end gap-3"><p className="text-lg font-bold">Rs {Number(order.total).toLocaleString()}</p><BuyAgainButton items={order.order_items} /><Link href={`/orders/${order.id}`} className="rounded-xl border border-cyan-300 px-4 py-2 text-xs font-bold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-400/40 dark:text-cyan-300 dark:hover:bg-cyan-400/10">View order</Link></div>
               </div>
             </article>
           ))}
@@ -63,6 +73,25 @@ export default function OrdersPage() {
       </div>
     </main>
   );
+}
+
+function BuyAgainButton({ items }: { items: CustomerOrder["order_items"] }) {
+  const { addItem } = useCart();
+  const { showToast } = useToast();
+
+  function buyAgain() {
+    let added = 0;
+    let unavailable = 0;
+    items.forEach((item) => {
+      if (item.stock_status === "out_of_stock" || item.stock_quantity < 1) { unavailable += 1; return; }
+      addItem({ variantId: item.variant_id, productSlug: item.product_slug, productName: item.product_name, brandName: item.brand_name, thumbnail: item.product_image ?? null, size: item.size, color: item.color, unitPrice: Number(item.current_price), maxStock: item.stock_quantity }, item.quantity);
+      added += 1;
+    });
+    if (added) showToast({ title: "Added to cart", description: `${added} purchased ${added === 1 ? "item" : "items"} added at current prices.` });
+    if (unavailable) showToast({ title: "Some items unavailable", description: `${unavailable} item${unavailable === 1 ? " is" : "s are"} currently out of stock.`, variant: "info" });
+  }
+
+  return <button type="button" onClick={buyAgain} className="rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-400">Buy again</button>;
 }
 
 function OrderSkeleton() {

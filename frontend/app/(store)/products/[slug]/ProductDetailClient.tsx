@@ -11,6 +11,8 @@ import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import NotifyMeForm from "@/app/components/NotifyMeForm";
 import ProductCard from "@/app/components/ProductCard";
+import CompareButton from "@/app/components/CompareButton";
+import ProductShare from "@/app/components/ProductShare";
 
 export default function ProductDetailClient({ product }: { product: ProductDetail }) {
   const { addItem } = useCart();
@@ -56,6 +58,10 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
       ) ?? null,
     [product.variants, selectedSize, selectedColor],
   );
+
+  const currentPrice = selectedVariant?.effective_price ?? product.current_price;
+  const isSizeAvailable = (sizeId: number) => product.variants.some((variant) => variant.size.id === sizeId && variant.is_active && variant.stock_quantity > 0 && (!selectedColor || variant.color.id === selectedColor));
+  const isColorAvailable = (colorId: number) => product.variants.some((variant) => variant.color.id === colorId && variant.is_active && variant.stock_quantity > 0 && (!selectedSize || variant.size.id === selectedSize));
 
   const handleAddToCart = () => {
     if (!selectedVariant || selectedVariant.stock_quantity < 1) return;
@@ -249,7 +255,7 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
 
           <div className="mt-6 flex flex-wrap items-center gap-3">
             <span className="text-3xl font-bold tracking-tight text-slate-950 dark:text-white">
-              Rs {Number(product.current_price).toLocaleString()}
+              Rs {Number(currentPrice).toLocaleString()}
             </span>
             {hasDiscount && (
               <>
@@ -286,11 +292,12 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
                     type="button"
                     aria-label={color.name}
                     onClick={() => setSelectedColor(color.id)}
+                    disabled={!isColorAvailable(color.id)}
                     className={`h-9 w-9 rounded-full border-2 transition-transform ${
                       selectedColor === color.id
                         ? "scale-110 border-cyan-500 shadow-[0_0_0_3px_rgba(34,211,238,0.15)]"
                         : "border-slate-200 hover:scale-105 dark:border-white/15"
-                    }`}
+                    } ${!isColorAvailable(color.id) ? "cursor-not-allowed opacity-30 grayscale" : ""}`}
                     style={{ backgroundColor: color.hex }}
                   />
                 ))}
@@ -308,11 +315,12 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
                     key={size.id}
                     type="button"
                     onClick={() => setSelectedSize(size.id)}
+                    disabled={!isSizeAvailable(size.id)}
                     className={`rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
                       selectedSize === size.id
                         ? "border-cyan-500 bg-cyan-500 text-slate-950"
                         : "border-slate-200 text-slate-700 hover:border-cyan-400 dark:border-white/15 dark:text-slate-300"
-                    }`}
+                    } ${!isSizeAvailable(size.id) ? "cursor-not-allowed opacity-40 line-through" : ""}`}
                   >
                     {size.label}
                   </button>
@@ -336,6 +344,7 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
               <span className="font-medium text-emerald-600 dark:text-emerald-400">In stock</span>
             )}
           </p>
+          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Estimated delivery: 3-5 business days.</p>
 
           {/* Notify-me form — shown when selected variant is out of stock */}
           {selectedVariant?.stock_status === "out_of_stock" && (
@@ -414,7 +423,9 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
                 {wishlisted ? "Wishlisted" : "Wishlist"}
               </span>
             </button>
+            <CompareButton product={product} />
           </div>
+            <ProductShare productName={product.name} slug={product.slug} />
 
           {/* Attributes */}
           {(product.material || product.sole_type) && (

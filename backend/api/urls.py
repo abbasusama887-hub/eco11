@@ -9,6 +9,7 @@ urlpatterns = [
     path("categories/", views.CategoryListView.as_view(), name="category-list"),
     path("brands/", views.BrandListView.as_view(), name="brand-list"),
     path("coupons/validate/", views.CouponValidateView.as_view(), name="coupon-validate"),
+    path("shipping/quote/", views.ShippingQuoteView.as_view(), name="shipping-quote"),
     path("products/<slug:slug>/reviews/", views.ReviewCreateView.as_view(), name="review-create"),
 
     # ── Orders ─────────────────────────────────────────────────────────────
@@ -25,6 +26,16 @@ urlpatterns = [
     path("auth/login/", views.LoginView.as_view(), name="auth-login"),
     path("auth/logout/", views.LogoutView.as_view(), name="auth-logout"),
     path("auth/me/", views.MeView.as_view(), name="auth-me"),
+    path("auth/profile/", views.ProfileUpdateView.as_view(), name="auth-profile-update"),
+    path("auth/password/", views.PasswordChangeView.as_view(), name="auth-password-change"),
+
+    # ── Customer data ─────────────────────────────────────────────────────
+    path("addresses/", views.AddressListCreateView.as_view(), name="address-list-create"),
+    path("addresses/<int:pk>/", views.AddressDetailView.as_view(), name="address-detail"),
+    path("addresses/<int:pk>/default/", views.AddressDefaultView.as_view(), name="address-default"),
+    path("notifications/", views.NotificationListView.as_view(), name="notification-list"),
+    path("notifications/read/", views.NotificationReadView.as_view(), name="notification-read-all"),
+    path("notifications/<int:pk>/read/", views.NotificationReadView.as_view(), name="notification-read"),
 
     # ── Stock Alerts ───────────────────────────────────────────────────────
     path("stock-alerts/", views.StockAlertCreateView.as_view(), name="stock-alert-create"),

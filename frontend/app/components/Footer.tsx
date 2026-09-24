@@ -25,6 +25,7 @@ const FOOTER_LINKS: { heading: string; links: { label: string; href: string }[] 
     links: [
       { label: "About Us", href: "/" },
       { label: "Contact", href: "mailto:usama.developer.500@gmail.com" },
+      { label: "Help Center", href: "/help" },
       { label: "Shipping Policy", href: "/" },
       { label: "Return Policy", href: "/" },
     ],

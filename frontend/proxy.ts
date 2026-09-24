@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 /** Routes that require a logged-in customer. */
-const PROTECTED_PATHS = ["/products", "/cart", "/shop", "/orders"];
+const PROTECTED_PATHS = ["/products", "/cart", "/shop", "/orders", "/account"];
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

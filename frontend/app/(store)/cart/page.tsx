@@ -2,32 +2,24 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { useWishlist } from "@/app/context/WishlistContext";
+import { useSavedItems } from "@/app/context/SavedItemsContext";
 import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { getShippingQuote } from "@/app/lib/api";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, subtotal, itemCount } = useCart();
-  const { toggleItem } = useWishlist();
+  const { saveItem } = useSavedItems();
   const [pendingRemoval, setPendingRemoval] = useState<(typeof items)[number] | null>(null);
+  const [shippingQuote, setShippingQuote] = useState<{ threshold: number; shipping: number; free_shipping: boolean; estimate: string } | null>(null);
+
+  useEffect(() => {
+    getShippingQuote(subtotal).then(setShippingQuote).catch(() => setShippingQuote(null));
+  }, [subtotal]);
 
   function saveForLater(item: (typeof items)[number]) {
-    toggleItem({
-      productId: item.variantId,
-      productSlug: item.productSlug,
-      productName: item.productName,
-      brandName: item.brandName,
-      thumbnail: item.thumbnail,
-      price: item.unitPrice,
-      currentPrice: item.unitPrice,
-      discountPercent: 0,
-      isInStock: item.maxStock > 0,
-      rememberedSize: item.size,
-      rememberedColor: item.color,
-      variantId: item.variantId,
-      maxStock: item.maxStock,
-    });
+    saveItem(item);
     removeItem(item.variantId);
   }
 
@@ -51,6 +43,7 @@ export default function CartPage() {
           <ArrowIcon />
         </Link>
         </div>
+        <SavedItemsPanel />
       </div>
     );
   }
@@ -146,6 +139,7 @@ export default function CartPage() {
           </article>
         ))}
             </div>
+            <SavedItemsPanel />
           </section>
 
           <aside className="lg:sticky lg:top-24">
@@ -154,13 +148,14 @@ export default function CartPage() {
               <p className="mt-1 text-xs text-slate-400">Your final delivery options are confirmed at checkout.</p>
               <div className="mt-6 space-y-4 text-sm">
                 <div className="flex justify-between text-slate-300"><span>Subtotal</span><span>Rs {subtotal.toLocaleString()}</span></div>
-                <div className="flex justify-between text-slate-500"><span>Shipping</span><span>Calculated at checkout</span></div>
+                {shippingQuote && <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/[0.06] p-3 text-xs text-cyan-100">{shippingQuote.free_shipping ? "You qualify for FREE DELIVERY" : `Add Rs ${Math.max(shippingQuote.threshold - subtotal, 0).toLocaleString()} more to get FREE DELIVERY`}<div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10"><div className="h-full rounded-full bg-cyan-400 transition-[width]" style={{ width: `${Math.min((subtotal / shippingQuote.threshold) * 100, 100)}%` }} /></div></div>}
+                <div className="flex justify-between text-slate-500"><span>Shipping</span><span>{shippingQuote ? shippingQuote.shipping ? `Rs ${shippingQuote.shipping.toLocaleString()}` : "FREE" : "Calculated at checkout"}</span></div>
                 <div className="flex justify-between text-slate-500"><span>Tax</span><span>Calculated at checkout</span></div>
               </div>
               <div className="my-6 border-t border-white/10" />
               <div className="flex items-end justify-between gap-4">
                 <span className="text-sm font-medium text-slate-300">Total</span>
-                <span className="text-2xl font-bold tracking-tight text-white">Rs {subtotal.toLocaleString()}</span>
+                <span className="text-2xl font-bold tracking-tight text-white">Rs {(subtotal + (shippingQuote?.shipping ?? 0)).toLocaleString()}</span>
               </div>
               <Link
                 href="/checkout"
@@ -190,6 +185,24 @@ export default function CartPage() {
       />
     )}
     </>
+  );
+}
+
+function SavedItemsPanel() {
+  const { items, removeItem } = useSavedItems();
+  const { addItem } = useCart();
+
+  function moveToCart(item: (typeof items)[number]) {
+    const { quantity, ...cartItem } = item;
+    addItem(cartItem, quantity);
+    removeItem(item.variantId);
+  }
+
+  return (
+    <section className="mt-4 rounded-3xl border border-slate-200 bg-white/75 p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:p-6">
+      <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-semibold text-slate-900 dark:text-white">Saved for later</h2><span className="text-xs text-slate-500 dark:text-slate-400">{items.length} {items.length === 1 ? "item" : "items"}</span></div>
+      {items.length === 0 ? <p className="mt-4 text-sm text-slate-500 dark:text-slate-400">Items you save from your cart will appear here.</p> : <div className="mt-4 divide-y divide-slate-200 dark:divide-white/10">{items.map((item) => <div key={item.variantId} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0"><div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-slate-100">{item.thumbnail && <Image src={item.thumbnail} alt="" fill sizes="56px" className="object-cover" />}</div><div className="min-w-0 flex-1"><Link href={`/products/${item.productSlug}`} className="block truncate text-sm font-semibold hover:text-cyan-700">{item.productName}</Link><p className="text-xs text-slate-500">{item.size} · {item.color} · Rs {item.unitPrice.toLocaleString()}</p></div><button type="button" onClick={() => moveToCart(item)} className="shrink-0 rounded-lg bg-cyan-500 px-3 py-2 text-[10px] font-bold text-slate-950">Move to cart</button><button type="button" onClick={() => removeItem(item.variantId)} aria-label={`Remove ${item.productName} from saved items`} className="text-lg text-slate-400 hover:text-red-600">×</button></div>)}</div>}
+    </section>
   );
 }
 

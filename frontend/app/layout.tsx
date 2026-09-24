@@ -4,6 +4,8 @@ import { CartProvider } from "@/app/context/CartContext";
 import { AuthProvider } from "@/app/context/AuthContext";
 import { WishlistProvider } from "@/app/context/WishlistContext";
 import { ToastProvider } from "@/app/components/ToastProvider";
+import { CompareProvider } from "@/app/context/CompareContext";
+import { SavedItemsProvider } from "@/app/context/SavedItemsContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -40,9 +42,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         <AuthProvider>
           <ToastProvider>
-            <WishlistProvider>
-              <CartProvider>{children}</CartProvider>
-            </WishlistProvider>
+            <CompareProvider>
+              <SavedItemsProvider>
+                <WishlistProvider>
+                  <CartProvider>{children}</CartProvider>
+                </WishlistProvider>
+              </SavedItemsProvider>
+            </CompareProvider>
           </ToastProvider>
         </AuthProvider>
       </body>

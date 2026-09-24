@@ -30,6 +30,8 @@ export default function SearchAutocomplete({ className = "" }: { className?: str
   useEffect(() => {
     try {
       const stored = window.localStorage.getItem(RECENT_SEARCHES_KEY);
+      // Client-only localStorage hydration is intentional here.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (stored) setRecent(JSON.parse(stored));
     } catch {
       // Ignore unavailable storage.
@@ -46,6 +48,8 @@ export default function SearchAutocomplete({ className = "" }: { className?: str
 
   useEffect(() => {
     if (!open || !query.trim()) {
+      // Reset suggestions when the popover is cleared.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setProducts([]);
       return;
     }

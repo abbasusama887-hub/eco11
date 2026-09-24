@@ -4,6 +4,7 @@ Django settings for config project.
 
 import mimetypes
 import os
+from decimal import Decimal
 from pathlib import Path
 
 from django.urls import reverse_lazy
@@ -184,6 +185,8 @@ REST_FRAMEWORK = {
 DELIVERY_LOCATION_MAX_AGE_MINUTES = int(os.getenv("DELIVERY_LOCATION_MAX_AGE_MINUTES", "15"))
 DELIVERY_MAX_ACTIVE_ORDERS = int(os.getenv("DELIVERY_MAX_ACTIVE_ORDERS", "3"))
 DELIVERY_MAX_ASSIGNMENT_RADIUS_KM = float(os.getenv("DELIVERY_MAX_ASSIGNMENT_RADIUS_KM", "20"))
+FREE_SHIPPING_THRESHOLD = Decimal(os.getenv("FREE_SHIPPING_THRESHOLD", "5000"))
+STANDARD_SHIPPING_FEE = Decimal(os.getenv("STANDARD_SHIPPING_FEE", "250"))
 
 
 # CORS — allow the Next.js frontend to call the API

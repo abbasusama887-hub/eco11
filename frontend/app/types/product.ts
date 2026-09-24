@@ -82,6 +82,7 @@ export interface Product {
   is_featured: boolean;
   is_new_arrival: boolean;
   is_in_stock: boolean;
+  stock_status?: "out_of_stock" | "low_stock" | "in_stock";
   average_rating: number | null;
 }
 
@@ -159,12 +160,18 @@ export interface OrderResponse {
   location_source: string;
   order_items: {
     id: number;
+    variant_id: number;
     product_name: string;
+    product_slug: string;
+    brand_name: string;
     product_image?: string | null;
     size: string;
     color: string;
     quantity: number;
     unit_price: string;
+    current_price: number;
+    stock_quantity: number;
+    stock_status: "out_of_stock" | "low_stock" | "in_stock";
     line_total: number;
   }[];
 }
@@ -173,6 +180,34 @@ export interface CouponResult {
   code: string;
   description: string;
   discount: number;
+}
+
+export interface CustomerAddress {
+  id: number;
+  label: string;
+  full_name: string;
+  phone: string;
+  address: string;
+  city: string;
+  delivery_area: string;
+  is_default: boolean;
+}
+
+export interface CustomerNotification {
+  id: number;
+  notification_type: "order" | "stock" | "promo";
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  order: number | null;
+}
+
+export interface ShippingQuote {
+  threshold: number;
+  shipping: number;
+  free_shipping: boolean;
+  estimate: string;
 }
 
 export interface CustomerOrder {

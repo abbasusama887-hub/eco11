@@ -1,6 +1,7 @@
 from datetime import timedelta
 
 from django.contrib.auth import authenticate, get_user_model
+from django.conf import settings
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
@@ -12,6 +13,8 @@ from .models import (
     Category,
     Color,
     Customer,
+    CustomerAddress,
+    CustomerNotification,
     DeliveryBoy,
     HeroSlide,
     Order,
@@ -163,6 +166,53 @@ class CustomerSerializer(serializers.ModelSerializer):
         return obj.user.get_full_name() or obj.user.username
 
 
+class CustomerProfileUpdateSerializer(serializers.Serializer):
+    name = serializers.CharField(max_length=150)
+    email = serializers.EmailField(required=False, allow_blank=True)
+    phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
+
+    def validate_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError("Name is required.")
+        return value.strip()
+
+
+class CustomerAddressSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerAddress
+        fields = ["id", "label", "full_name", "phone", "address", "city", "delivery_area", "is_default"]
+        read_only_fields = ["id"]
+
+    def validate(self, attrs):
+        for field in ("full_name", "phone", "address", "city"):
+            if not str(attrs.get(field, "")).strip():
+                raise serializers.ValidationError({field: "This field is required."})
+        return attrs
+
+
+class CustomerNotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CustomerNotification
+        fields = ["id", "notification_type", "title", "message", "is_read", "created_at", "order"]
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    current_password = serializers.CharField(write_only=True)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+    confirm_password = serializers.CharField(write_only=True)
+
+    def validate(self, attrs):
+        if attrs["new_password"] != attrs["confirm_password"]:
+            raise serializers.ValidationError({"confirm_password": "Passwords do not match."})
+        try:
+            validate_password(attrs["new_password"], self.context["request"].user)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError({"new_password": list(exc.messages)})
+        if not self.context["request"].user.check_password(attrs["current_password"]):
+            raise serializers.ValidationError({"current_password": "Current password is incorrect."})
+        return attrs
+
+
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
@@ -245,6 +295,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     discount_percent = serializers.ReadOnlyField()
     is_in_stock = serializers.ReadOnlyField()
     average_rating = serializers.ReadOnlyField()
+    stock_status = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -252,8 +303,16 @@ class ProductListSerializer(serializers.ModelSerializer):
             "id", "name", "slug", "sku", "brand", "category", "gender",
             "price", "discount_price", "current_price", "discount_percent",
             "thumbnail", "is_featured", "is_new_arrival", "is_in_stock",
-            "average_rating",
+            "average_rating", "stock_status",
         ]
+
+    def get_stock_status(self, obj):
+        variants = list(obj.variants.all())
+        if not any(variant.stock_quantity > 0 for variant in variants):
+            return "out_of_stock"
+        if any(variant.stock_status == "low_stock" for variant in variants):
+            return "low_stock"
+        return "in_stock"
 
 
 class ProductDetailSerializer(ProductListSerializer):
@@ -284,15 +343,21 @@ class OrderItemWriteSerializer(serializers.Serializer):
 
 
 class OrderItemReadSerializer(serializers.ModelSerializer):
+    variant_id = serializers.IntegerField(source="variant.id", read_only=True)
     product_image = serializers.ImageField(source="product.thumbnail", read_only=True)
     product_name = serializers.CharField(source="product.name", read_only=True)
+    product_slug = serializers.CharField(source="product.slug", read_only=True)
+    brand_name = serializers.CharField(source="product.brand.name", read_only=True)
+    current_price = serializers.ReadOnlyField(source="product.current_price")
+    stock_quantity = serializers.IntegerField(source="variant.stock_quantity", read_only=True)
+    stock_status = serializers.ReadOnlyField(source="variant.stock_status")
     size = serializers.CharField(source="variant.size", read_only=True)
     color = serializers.CharField(source="variant.color", read_only=True)
     line_total = serializers.ReadOnlyField()
 
     class Meta:
         model = OrderItem
-        fields = ["id", "product_name", "product_image", "size", "color", "quantity", "unit_price", "line_total"]
+        fields = ["id", "variant_id", "product_name", "product_slug", "brand_name", "product_image", "size", "color", "quantity", "unit_price", "current_price", "stock_quantity", "stock_status", "line_total"]
 
 
 class OrderStatusHistorySerializer(serializers.ModelSerializer):
@@ -390,6 +455,8 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             variant.save(update_fields=["stock_quantity"])
 
         order.recalculate_totals()
+        order.delivery_charge = 0 if order.subtotal >= settings.FREE_SHIPPING_THRESHOLD else settings.STANDARD_SHIPPING_FEE
+        order.recalculate_totals()
         if coupon_code:
             coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
             now = timezone.now()
@@ -413,7 +480,15 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             order.recalculate_totals()
             coupon.times_used += 1
             coupon.save(update_fields=["times_used", "updated_at"])
-        order.save(update_fields=["coupon", "discount_total", "subtotal", "total", "updated_at"])
+        order.save(update_fields=["coupon", "discount_total", "delivery_charge", "subtotal", "total", "updated_at"])
+        if order.customer:
+            CustomerNotification.objects.create(
+                customer=order.customer,
+                notification_type="order",
+                title="Order received",
+                message=f"Your order {order.order_number} has been received.",
+                order=order,
+            )
         return order
 
 

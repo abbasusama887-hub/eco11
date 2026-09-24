@@ -9,6 +9,9 @@ import type {
   CustomerOrder,
   CustomerOrderDetail,
   CouponResult,
+  CustomerAddress,
+  CustomerNotification,
+  ShippingQuote,
 } from "@/app/types/product";
 
 export interface AuthUser {
@@ -166,6 +169,46 @@ export async function submitReview(
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(review),
   });
+}
+
+export async function updateProfile(payload: { name: string; email: string; phone: string }): Promise<AuthUser> {
+  return apiFetch<AuthUser>("/api/auth/profile/", { method: "PATCH", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
+}
+
+export async function changePassword(payload: { current_password: string; new_password: string; confirm_password: string }): Promise<{ token: string; detail: string }> {
+  return apiFetch<{ token: string; detail: string }>("/api/auth/password/", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
+}
+
+export async function getAddresses(): Promise<CustomerAddress[]> {
+  return apiFetch<CustomerAddress[]>("/api/addresses/", { headers: authHeaders() });
+}
+
+export async function createAddress(payload: Omit<CustomerAddress, "id" | "is_default"> & { is_default?: boolean }): Promise<CustomerAddress> {
+  return apiFetch<CustomerAddress>("/api/addresses/", { method: "POST", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
+}
+
+export async function updateAddress(id: number, payload: Partial<CustomerAddress>): Promise<CustomerAddress> {
+  return apiFetch<CustomerAddress>(`/api/addresses/${id}/`, { method: "PATCH", headers: { "Content-Type": "application/json", ...authHeaders() }, body: JSON.stringify(payload) });
+}
+
+export async function deleteAddress(id: number): Promise<void> {
+  await apiFetch(`/api/addresses/${id}/`, { method: "DELETE", headers: authHeaders() });
+}
+
+export async function setDefaultAddress(id: number): Promise<CustomerAddress> {
+  return apiFetch<CustomerAddress>(`/api/addresses/${id}/default/`, { method: "POST", headers: authHeaders() });
+}
+
+export async function getNotifications(): Promise<CustomerNotification[]> {
+  return apiFetch<CustomerNotification[]>("/api/notifications/", { headers: authHeaders() });
+}
+
+export async function markNotificationRead(id?: number): Promise<void> {
+  await apiFetch(id ? `/api/notifications/${id}/read/` : "/api/notifications/read/", { method: "POST", headers: authHeaders() });
+}
+
+export async function getShippingQuote(subtotal: number): Promise<ShippingQuote> {
+  return apiFetch<ShippingQuote>("/api/shipping/quote/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subtotal }) });
 }
 
 // ---------------------------------------------------------------------------

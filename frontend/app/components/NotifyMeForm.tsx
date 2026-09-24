@@ -69,7 +69,7 @@ export default function NotifyMeForm({ productId, variantId, label }: Props) {
         </p>
       </div>
       <p className="mb-3 text-xs text-zinc-500 dark:text-zinc-400">
-        Enter your email and we'll let you know the moment this item is restocked.
+        Enter your email and we&apos;ll let you know the moment this item is restocked.
       </p>
 
       <form onSubmit={handleSubmit} noValidate className="flex gap-2">

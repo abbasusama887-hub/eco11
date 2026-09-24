@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { apiLogin, apiLogout, apiMe, apiRegister, type AuthUser } from "@/app/lib/api";
+import { apiLogin, apiLogout, apiRegister, changePassword, updateProfile, type AuthUser } from "@/app/lib/api";
 
 // Re-export so callers that imported AuthUser from here still work
 export type { AuthUser };
@@ -19,6 +19,8 @@ interface AuthContextValue {
   login: (identifier: string, password: string) => Promise<void>;
   signup: (name: string, email: string, phone: string, password: string) => Promise<void>;
   logout: () => void;
+  updateProfile: (payload: { name: string; email: string; phone: string }) => Promise<void>;
+  changePassword: (payload: { current_password: string; new_password: string; confirm_password: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -101,8 +103,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  const updateProfileDetails = async (payload: { name: string; email: string; phone: string }) => {
+    const profile = await updateProfile(payload);
+    setUser(profile);
+    try { window.localStorage.setItem(USER_KEY, JSON.stringify(profile)); } catch { /* session state remains current */ }
+  };
+
+  const changePasswordDetails = async (payload: { current_password: string; new_password: string; confirm_password: string }) => {
+    const response = await changePassword(payload);
+    try { window.localStorage.setItem(TOKEN_KEY, response.token); } catch { /* token remains in memory only */ }
+  };
+
   const value = useMemo<AuthContextValue>(
-    () => ({ user, isLoggedIn: !!user, login, signup, logout }),
+    () => ({ user, isLoggedIn: !!user, login, signup, logout, updateProfile: updateProfileDetails, changePassword: changePasswordDetails }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user],
   );

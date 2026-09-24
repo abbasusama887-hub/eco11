@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import type { Product } from "@/app/types/product";
+import CompareButton from "@/app/components/CompareButton";
 
 const PRODUCT_SIZES = ["6", "7", "8", "9", "10", "11"];
 
@@ -74,7 +75,7 @@ export default function ProductCard({ product }: { product: Product }) {
     setQuickViewOpen(false);
   }
 
-  const stockStatus = !product.is_in_stock ? "Out of stock" : product.discount_percent > 0 || product.is_featured ? "Low stock" : "In stock";
+  const stockStatus = product.stock_status === "out_of_stock" || !product.is_in_stock ? "Out of stock" : product.stock_status === "low_stock" ? "Low stock" : "In stock";
 
   return (
     <>
@@ -192,6 +193,7 @@ export default function ProductCard({ product }: { product: Product }) {
               {stockStatus}
             </span>
           </div>
+          <CompareButton product={product} compact />
         </div>
       </article>
 

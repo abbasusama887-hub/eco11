@@ -2,9 +2,9 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { createOrder, validateCoupon } from "@/app/lib/api";
+import { createOrder, getShippingQuote, validateCoupon } from "@/app/lib/api";
 import type { OrderResponse } from "@/app/types/product";
 
 export default function CheckoutPage() {
@@ -16,10 +16,15 @@ export default function CheckoutPage() {
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; description: string } | null>(null);
   const [couponMessage, setCouponMessage] = useState<string | null>(null);
   const [couponBusy, setCouponBusy] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState<{ threshold: number; shipping: number; free_shipping: boolean; estimate: string } | null>(null);
   const [location, setLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [locationSource, setLocationSource] = useState<"current_location" | "manual">("manual");
   const [locationMessage, setLocationMessage] = useState("Enter coordinates manually or use your current location.");
-  const total = Math.max(subtotal - (appliedCoupon?.discount ?? 0), 0);
+  const total = Math.max(subtotal + (shippingQuote?.shipping ?? 0) - (appliedCoupon?.discount ?? 0), 0);
+
+  useEffect(() => {
+    getShippingQuote(subtotal).then(setShippingQuote).catch(() => setShippingQuote(null));
+  }, [subtotal]);
 
   async function applyCoupon() {
     if (!couponCode.trim()) return;
@@ -308,7 +313,8 @@ export default function CheckoutPage() {
             {couponMessage && <p className={`mt-2 text-xs ${appliedCoupon ? "text-emerald-300" : "text-red-300"}`}>{couponMessage}</p>}
           </div>
           {appliedCoupon && <div className="flex justify-between text-emerald-300"><span>Discount</span><span>- Rs {appliedCoupon.discount.toLocaleString()}</span></div>}
-          <div className="flex justify-between text-slate-500"><span>Shipping</span><span>Calculated at checkout</span></div>
+          {shippingQuote && <div className="flex justify-between text-slate-300"><span>Shipping fee</span><span>{shippingQuote.shipping ? `Rs ${shippingQuote.shipping.toLocaleString()}` : "FREE"}</span></div>}
+          {shippingQuote && <p className="text-xs text-cyan-300">Estimated delivery: {shippingQuote.estimate}.</p>}
         </div>
         <div className="my-5 border-t border-white/10" />
         <div className="flex items-end justify-between gap-4">

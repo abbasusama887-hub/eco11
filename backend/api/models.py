@@ -503,6 +503,37 @@ class Customer(TimeStampedModel):
         return f"{self.user.get_full_name()} <{self.user.email}>"
 
 
+class CustomerAddress(TimeStampedModel):
+    customer = models.ForeignKey(Customer, related_name="addresses", on_delete=models.CASCADE)
+    label = models.CharField(max_length=60, default="Home")
+    full_name = models.CharField(max_length=150)
+    phone = models.CharField(max_length=30)
+    address = models.CharField(max_length=255)
+    city = models.CharField(max_length=100)
+    delivery_area = models.CharField(max_length=100, blank=True)
+    is_default = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-is_default", "-updated_at"]
+
+
+class CustomerNotification(TimeStampedModel):
+    TYPE_CHOICES = [
+        ("order", "Order"),
+        ("stock", "Back in stock"),
+        ("promo", "Promotion"),
+    ]
+    customer = models.ForeignKey(Customer, related_name="notifications", on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="order")
+    title = models.CharField(max_length=150)
+    message = models.CharField(max_length=500)
+    is_read = models.BooleanField(default=False)
+    order = models.ForeignKey("Order", null=True, blank=True, on_delete=models.CASCADE, related_name="notifications")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+
 # ---------------------------------------------------------------------------
 # Delivery operations
 # ---------------------------------------------------------------------------

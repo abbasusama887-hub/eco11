@@ -1,4 +1,6 @@
 from django.db.models import Avg, Q
+from django.contrib.auth import get_user_model
+from django.conf import settings
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
@@ -10,23 +12,29 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .delivery import assign_order, auto_assign_order, eligible_delivery_boys, update_delivery_location
-from .models import Brand, Category, Coupon, Customer, DeliveryBoy, HeroSlide, Order, OrderStatusHistory, Product, Review, StockAlert
+from .models import Brand, Category, Coupon, Customer, CustomerAddress, CustomerNotification, DeliveryBoy, HeroSlide, Order, OrderStatusHistory, Product, Review, StockAlert
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
     CustomerSerializer,
+    CustomerAddressSerializer,
+    CustomerNotificationSerializer,
+    CustomerProfileUpdateSerializer,
     HeroSlideSerializer,
     LoginSerializer,
     OrderCreateSerializer,
     DeliveryLocationSerializer,
     OrderDetailSerializer,
     OrderListSerializer,
+    PasswordChangeSerializer,
     ProductDetailSerializer,
     ProductListSerializer,
     RegisterSerializer,
     ReviewCreateSerializer,
     StockAlertSerializer,
 )
+
+User = get_user_model()
 
 
 # ---------------------------------------------------------------------------
@@ -94,6 +102,110 @@ class MeView(APIView):
     def get(self, request):
         profile = CustomerSerializer(request.user.customer_profile).data
         return Response(profile)
+
+
+class ProfileUpdateView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request):
+        serializer = CustomerProfileUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        profile = request.user.customer_profile
+        email = serializer.validated_data.get("email", "").strip()
+        phone = serializer.validated_data.get("phone", "").strip()
+        if email and User.objects.filter(email__iexact=email).exclude(pk=request.user.pk).exists():
+            return Response({"email": "That email is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+        if phone and Customer.objects.filter(phone=phone).exclude(pk=profile.pk).exists():
+            return Response({"phone": "That phone number is already in use."}, status=status.HTTP_400_BAD_REQUEST)
+        parts = serializer.validated_data["name"].split(" ", 1)
+        request.user.first_name = parts[0]
+        request.user.last_name = parts[1] if len(parts) > 1 else ""
+        request.user.email = email
+        request.user.save(update_fields=["first_name", "last_name", "email"])
+        profile.phone = phone
+        profile.save(update_fields=["phone", "updated_at"])
+        return Response(CustomerSerializer(profile).data)
+
+
+class PasswordChangeView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data["new_password"])
+        request.user.save(update_fields=["password"])
+        Token.objects.filter(user=request.user).delete()
+        token = Token.objects.create(user=request.user)
+        return Response({"token": token.key, "detail": "Password updated successfully."})
+
+
+class AddressListCreateView(generics.ListCreateAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerAddressSerializer
+
+    def get_queryset(self):
+        return CustomerAddress.objects.filter(customer=self.request.user.customer_profile)
+
+    def perform_create(self, serializer):
+        customer = self.request.user.customer_profile
+        is_default = serializer.validated_data.get("is_default", False) or not CustomerAddress.objects.filter(customer=customer).exists()
+        if is_default:
+            CustomerAddress.objects.filter(customer=customer).update(is_default=False)
+        serializer.save(customer=customer, is_default=is_default)
+
+
+class AddressDetailView(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerAddressSerializer
+
+    def get_queryset(self):
+        return CustomerAddress.objects.filter(customer=self.request.user.customer_profile)
+
+    def perform_update(self, serializer):
+        if serializer.validated_data.get("is_default", False):
+            CustomerAddress.objects.filter(customer=self.request.user.customer_profile).update(is_default=False)
+        serializer.save()
+
+
+class AddressDefaultView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        address = get_object_or_404(CustomerAddress, pk=pk, customer=request.user.customer_profile)
+        CustomerAddress.objects.filter(customer=request.user.customer_profile).update(is_default=False)
+        address.is_default = True
+        address.save(update_fields=["is_default", "updated_at"])
+        return Response(CustomerAddressSerializer(address).data)
+
+
+class NotificationListView(generics.ListAPIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+    serializer_class = CustomerNotificationSerializer
+
+    def get_queryset(self):
+        return CustomerNotification.objects.filter(customer=self.request.user.customer_profile)
+
+
+class NotificationReadView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk=None):
+        queryset = CustomerNotification.objects.filter(customer=request.user.customer_profile)
+        if pk is None:
+            queryset.update(is_read=True)
+            return Response({"detail": "Notifications marked as read."})
+        notification = get_object_or_404(queryset, pk=pk)
+        notification.is_read = True
+        notification.save(update_fields=["is_read", "updated_at"])
+        return Response(CustomerNotificationSerializer(notification).data)
 
 
 class ProductListView(generics.ListAPIView):
@@ -257,6 +369,20 @@ class CouponValidateView(APIView):
             discount = float(coupon.discount_value)
         discount = min(discount, subtotal)
         return Response({"code": coupon.code, "description": coupon.description, "discount": round(discount, 2)})
+
+
+class ShippingQuoteView(APIView):
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        try:
+            subtotal = max(float(request.data.get("subtotal", 0)), 0)
+        except (TypeError, ValueError):
+            subtotal = 0
+        threshold = float(settings.FREE_SHIPPING_THRESHOLD)
+        free = subtotal >= threshold
+        return Response({"threshold": threshold, "shipping": 0 if free else float(settings.STANDARD_SHIPPING_FEE), "free_shipping": free, "estimate": "3-5 business days"})
 
 
 class ReviewCreateView(generics.CreateAPIView):
