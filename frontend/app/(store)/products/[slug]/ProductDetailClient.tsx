@@ -13,6 +13,7 @@ import NotifyMeForm from "@/app/components/NotifyMeForm";
 import ProductCard from "@/app/components/ProductCard";
 import CompareButton from "@/app/components/CompareButton";
 import ProductShare from "@/app/components/ProductShare";
+import { STORE } from "@/app/lib/store";
 
 export default function ProductDetailClient({ product }: { product: ProductDetail }) {
   const { addItem } = useCart();
@@ -45,6 +46,7 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [storeProductCount, setStoreProductCount] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, title: "", comment: "" });
   const [reviewMessage, setReviewMessage] = useState<string | null>(null);
@@ -153,10 +155,14 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
 
   useEffect(() => {
     let cancelled = false;
-    getProducts({ category: product.category.slug, limit: 5 })
-      .then((data) => {
+    Promise.all([
+      getProducts({ category: product.category.slug, limit: 5 }),
+      getProducts({ limit: 1 }),
+    ])
+      .then(([relatedData, storeData]) => {
         if (!cancelled) {
-          setRelatedProducts(data.results.filter((item) => item.id !== product.id).slice(0, 4));
+          setRelatedProducts(relatedData.results.filter((item) => item.id !== product.id).slice(0, 4));
+          setStoreProductCount(storeData.count);
         }
       })
       .catch(() => {
@@ -455,6 +461,25 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
               </p>
             </div>
           )}
+
+          <section className="mt-7 border-t border-slate-200 pt-6 dark:border-white/10" aria-labelledby="store-information-heading">
+            <div className="flex items-start gap-3">
+              <img src={STORE.logo} alt="" width={48} height={48} className="h-12 w-12 shrink-0 rounded-xl object-cover" />
+              <div className="min-w-0 flex-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 id="store-information-heading" className="text-sm font-bold text-slate-900 dark:text-white">{STORE.name}</h2>
+                  {STORE.verified && <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">Verified store</span>}
+                </div>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">One store, one Bazar experience.</p>
+              </div>
+            </div>
+            <dl className="mt-4 grid gap-2 text-xs text-slate-600 dark:text-slate-400 sm:grid-cols-2">
+              <div><dt className="font-semibold text-slate-900 dark:text-slate-200">Store rating</dt><dd className="mt-0.5">Not yet rated</dd></div>
+              {storeProductCount !== null && <div><dt className="font-semibold text-slate-900 dark:text-slate-200">Available products</dt><dd className="mt-0.5">{storeProductCount}</dd></div>}
+              <div><dt className="font-semibold text-slate-900 dark:text-slate-200">Delivery</dt><dd className="mt-0.5">{STORE.deliveryInformation}</dd></div>
+            </dl>
+            <Link href="/store" className="mt-4 inline-flex rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-400">View store</Link>
+          </section>
         </section>
       </div>
 
