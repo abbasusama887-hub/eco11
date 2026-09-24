@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { useCart } from "@/app/context/CartContext";
-import { createOrder } from "@/app/lib/api";
+import { createOrder, validateCoupon } from "@/app/lib/api";
 import type { OrderResponse } from "@/app/types/product";
 
 export default function CheckoutPage() {
@@ -12,9 +12,36 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmedOrder, setConfirmedOrder] = useState<OrderResponse | null>(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; description: string } | null>(null);
+  const [couponMessage, setCouponMessage] = useState<string | null>(null);
+  const [couponBusy, setCouponBusy] = useState(false);
   const [location, setLocation] = useState<{ latitude: number; longitude: number; accuracy?: number } | null>(null);
   const [locationSource, setLocationSource] = useState<"current_location" | "manual">("manual");
   const [locationMessage, setLocationMessage] = useState("Enter coordinates manually or use your current location.");
+  const total = Math.max(subtotal - (appliedCoupon?.discount ?? 0), 0);
+
+  async function applyCoupon() {
+    if (!couponCode.trim()) return;
+    setCouponBusy(true);
+    setCouponMessage(null);
+    try {
+      const result = await validateCoupon(couponCode, subtotal);
+      setAppliedCoupon(result);
+      setCouponMessage(`${result.code} applied. You saved Rs ${result.discount.toLocaleString()}.`);
+    } catch (error) {
+      setAppliedCoupon(null);
+      setCouponMessage(error instanceof Error ? error.message : "That coupon could not be applied.");
+    } finally {
+      setCouponBusy(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setCouponCode("");
+    setCouponMessage(null);
+  }
 
   const captureCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -62,6 +89,7 @@ export default function CheckoutPage() {
         location_accuracy: location?.accuracy,
         notes: String(form.get("notes") ?? ""),
         payment_method: "cod",
+        coupon_code: appliedCoupon?.code,
         items: items.map((item) => ({
           variant_id: item.variantId,
           quantity: item.quantity,
@@ -101,6 +129,11 @@ export default function CheckoutPage() {
           Continue shopping
           <ArrowIcon />
         </Link>
+        {confirmedOrder.address && <p className="mt-6 text-left text-sm text-slate-600 dark:text-slate-300"><span className="font-semibold">Delivery:</span> {confirmedOrder.address}, {confirmedOrder.city}</p>}
+        <p className="mt-2 text-left text-sm text-slate-600 dark:text-slate-300">Estimated delivery: 3–5 business days.</p>
+        <div className="mt-5 flex flex-wrap justify-center gap-3">
+          <Link href={`/orders/${confirmedOrder.id}`} className="rounded-xl border border-cyan-300 px-4 py-2.5 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-50 dark:text-cyan-300">Track order</Link>
+        </div>
         </div>
       </div>
     );
@@ -134,12 +167,14 @@ export default function CheckoutPage() {
             <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">Checkout</h1>
             <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Complete your details to place your order.</p>
           </div>
-          <div className="flex items-center gap-2 text-xs font-semibold text-cyan-700 dark:text-cyan-300">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-cyan-500 text-slate-950">1</span>
-            <span>Information</span>
-            <span className="h-px w-8 bg-slate-300 dark:bg-white/15" />
-            <span className="flex h-6 w-6 items-center justify-center rounded-full border border-slate-300 text-slate-400 dark:border-white/20">2</span>
-            <span className="hidden text-slate-400 sm:inline">Confirmation</span>
+          <div className="flex max-w-full items-center gap-1.5 overflow-x-auto text-[10px] font-semibold text-cyan-700 dark:text-cyan-300 sm:gap-2 sm:text-xs">
+            {["Cart", "Address", "Delivery", "Payment", "Confirmed"].map((step, index) => (
+              <span key={step} className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                <span className={`flex h-6 w-6 items-center justify-center rounded-full ${index === 0 ? "bg-emerald-500 text-white" : index === 1 ? "bg-cyan-500 text-slate-950" : "border border-slate-300 text-slate-400 dark:border-white/20"}`}>{index < 1 ? "✓" : index + 1}</span>
+                <span className={index > 1 ? "text-slate-400" : undefined}>{step}</span>
+                {index < 4 && <span className="h-px w-3 bg-slate-300 dark:bg-white/15 sm:w-6" />}
+              </span>
+            ))}
           </div>
         </header>
 
@@ -265,12 +300,20 @@ export default function CheckoutPage() {
         </div>
         <div className="mt-2 space-y-3 border-t border-white/10 pt-5 text-sm">
           <div className="flex justify-between text-slate-300"><span>Subtotal</span><span>Rs {subtotal.toLocaleString()}</span></div>
+          <div className="rounded-xl border border-white/10 bg-white/[0.04] p-3">
+            <div className="flex gap-2">
+              <input value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="Coupon code" aria-label="Coupon code" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs text-white outline-none placeholder:text-slate-500 focus:border-cyan-300" />
+              {appliedCoupon ? <button type="button" onClick={removeCoupon} className="rounded-lg px-2 text-xs font-semibold text-slate-300 hover:text-white">Remove</button> : <button type="button" disabled={couponBusy} onClick={applyCoupon} className="rounded-lg bg-cyan-500 px-3 py-2 text-xs font-bold text-slate-950 disabled:opacity-60">{couponBusy ? "..." : "Apply"}</button>}
+            </div>
+            {couponMessage && <p className={`mt-2 text-xs ${appliedCoupon ? "text-emerald-300" : "text-red-300"}`}>{couponMessage}</p>}
+          </div>
+          {appliedCoupon && <div className="flex justify-between text-emerald-300"><span>Discount</span><span>- Rs {appliedCoupon.discount.toLocaleString()}</span></div>}
           <div className="flex justify-between text-slate-500"><span>Shipping</span><span>Calculated at checkout</span></div>
         </div>
         <div className="my-5 border-t border-white/10" />
         <div className="flex items-end justify-between gap-4">
           <span className="text-sm font-medium text-slate-300">Total</span>
-          <span className="text-2xl font-bold tracking-tight text-white">Rs {subtotal.toLocaleString()}</span>
+          <span className="text-2xl font-bold tracking-tight text-white">Rs {total.toLocaleString()}</span>
         </div>
         </div>
       </aside>

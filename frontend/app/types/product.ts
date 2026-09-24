@@ -111,7 +111,10 @@ export interface ProductFilters {
   gender?: string;
   min_price?: string;
   max_price?: string;
-  ordering?: "price_asc" | "price_desc" | "newest";
+  ordering?: "price_asc" | "price_desc" | "newest" | "rating" | "popular";
+  size?: string;
+  rating?: string;
+  availability?: "in_stock" | "out_of_stock";
   featured?: "true";
   limit?: number;
 }
@@ -136,6 +139,7 @@ export interface OrderPayload {
   location_accuracy?: number;
   notes?: string;
   payment_method: PaymentMethod;
+  coupon_code?: string;
   items: OrderItemInput[];
 }
 
@@ -146,6 +150,10 @@ export interface OrderResponse {
   full_name: string;
   subtotal: string;
   total: string;
+  discount_total?: string;
+  address?: string;
+  city?: string;
+  delivery_area?: string;
   delivery_latitude: string | null;
   delivery_longitude: string | null;
   location_source: string;
@@ -159,6 +167,12 @@ export interface OrderResponse {
     unit_price: string;
     line_total: number;
   }[];
+}
+
+export interface CouponResult {
+  code: string;
+  description: string;
+  discount: number;
 }
 
 export interface CustomerOrder {

@@ -236,6 +236,7 @@ function ProductCardHome({ product }: { product: Product }) {
   const router = useRouter();
   const hasDiscount = product.discount_percent > 0;
   const wishlisted = isWishlisted(product.id);
+  const [imageFailed, setImageFailed] = useState(false);
 
   function handleWishlist(e: React.MouseEvent<HTMLButtonElement>) {
     e.preventDefault();
@@ -262,13 +263,14 @@ function ProductCardHome({ product }: { product: Product }) {
   return (
     <div className="group flex min-h-full flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white/75 text-slate-950 shadow-[0_10px_28px_rgba(15,23,42,0.1),inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/50 hover:shadow-[0_18px_38px_rgba(15,23,42,0.15),0_0_24px_rgba(34,211,238,0.1)]">
       <div className="relative block aspect-[4/5] overflow-hidden bg-slate-100">
-        {product.thumbnail ? (
+        {product.thumbnail && !imageFailed ? (
           <Image
             src={product.thumbnail}
             alt={product.name}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 12vw"
             className="object-cover transition-transform duration-400 ease-out group-hover:scale-[1.03]"
+            onError={() => setImageFailed(true)}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-4xl">No image</div>

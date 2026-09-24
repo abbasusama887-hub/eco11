@@ -1,4 +1,4 @@
-from django.db.models import Q
+from django.db.models import Avg, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from datetime import timedelta
@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from .delivery import assign_order, auto_assign_order, eligible_delivery_boys, update_delivery_location
-from .models import Brand, Category, Customer, DeliveryBoy, HeroSlide, Order, OrderStatusHistory, Product, StockAlert
+from .models import Brand, Category, Coupon, Customer, DeliveryBoy, HeroSlide, Order, OrderStatusHistory, Product, Review, StockAlert
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
@@ -24,6 +24,7 @@ from .serializers import (
     ProductDetailSerializer,
     ProductListSerializer,
     RegisterSerializer,
+    ReviewCreateSerializer,
     StockAlertSerializer,
 )
 
@@ -106,7 +107,7 @@ class ProductListView(generics.ListAPIView):
       ?brand=nike              — brand slug
       ?gender=men|women|kids|unisex
       ?min_price=1000&max_price=5000
-      ?ordering=price_asc|price_desc|newest|rating
+    ?ordering=price_asc|price_desc|newest|rating|popular
       ?limit=8                 — cap result count (in addition to pagination)
     """
 
@@ -119,6 +120,16 @@ class ProductListView(generics.ListAPIView):
 
         if params.get("featured") == "true":
             qs = qs.filter(is_featured=True)
+
+        availability = params.get("availability")
+        if availability == "in_stock":
+            qs = qs.filter(variants__stock_quantity__gt=0)
+        elif availability == "out_of_stock":
+            qs = qs.exclude(variants__stock_quantity__gt=0)
+
+        size = params.get("size")
+        if size:
+            qs = qs.filter(variants__size__value__iexact=size)
 
         search = params.get("search")
         if search:
@@ -149,6 +160,15 @@ class ProductListView(generics.ListAPIView):
         if max_price:
             qs = qs.filter(price__lte=max_price)
 
+        rating = params.get("rating")
+        if rating:
+            try:
+                qs = qs.filter(reviews__is_approved=True).annotate(
+                    average_rating_filter=Avg("reviews__rating"),
+                ).filter(average_rating_filter__gte=float(rating))
+            except (TypeError, ValueError):
+                pass
+
         ordering = params.get("ordering")
         if ordering == "price_asc":
             qs = qs.order_by("price")
@@ -156,6 +176,12 @@ class ProductListView(generics.ListAPIView):
             qs = qs.order_by("-price")
         elif ordering == "newest":
             qs = qs.order_by("-created_at")
+        elif ordering == "rating":
+            qs = qs.annotate(
+                average_rating_order=Avg("reviews__rating", filter=Q(reviews__is_approved=True)),
+            ).order_by("-average_rating_order", "-created_at")
+        elif ordering == "popular":
+            qs = qs.order_by("-views_count", "-created_at")
         else:
             qs = qs.order_by("-created_at")
 
@@ -198,6 +224,53 @@ class BrandListView(generics.ListAPIView):
 
     def get_queryset(self):
         return Brand.objects.filter(is_active=True).order_by("name")
+
+
+class CouponValidateView(APIView):
+    """POST /api/coupons/validate/ — validate a coupon without exposing rules client-side."""
+
+    authentication_classes = []
+    permission_classes = []
+
+    def post(self, request):
+        code = str(request.data.get("code", "")).strip().upper()
+        try:
+            subtotal = max(float(request.data.get("subtotal", 0)), 0)
+        except (TypeError, ValueError):
+            subtotal = 0
+        coupon = Coupon.objects.filter(code=code, is_active=True).first()
+        now = timezone.now()
+        if not coupon:
+            return Response({"detail": "That coupon code is not valid."}, status=status.HTTP_400_BAD_REQUEST)
+        if not (coupon.valid_from <= now <= coupon.valid_to):
+            return Response({"detail": "That coupon has expired or is not active yet."}, status=status.HTTP_400_BAD_REQUEST)
+        if coupon.usage_limit is not None and coupon.times_used >= coupon.usage_limit:
+            return Response({"detail": "That coupon has reached its usage limit."}, status=status.HTTP_400_BAD_REQUEST)
+        if subtotal < float(coupon.min_purchase_amount):
+            return Response({"detail": f"Spend at least Rs {coupon.min_purchase_amount} to use this coupon."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if coupon.discount_type == "percent":
+            discount = subtotal * float(coupon.discount_value) / 100
+            if coupon.max_discount_amount is not None:
+                discount = min(discount, float(coupon.max_discount_amount))
+        else:
+            discount = float(coupon.discount_value)
+        discount = min(discount, subtotal)
+        return Response({"code": coupon.code, "description": coupon.description, "discount": round(discount, 2)})
+
+
+class ReviewCreateView(generics.CreateAPIView):
+    """POST /api/products/<slug>/reviews/ — submit a moderated customer review."""
+
+    serializer_class = ReviewCreateSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    def get_product(self):
+        return get_object_or_404(Product, slug=self.kwargs["slug"], is_active=True, status="published")
+
+    def perform_create(self, serializer):
+        serializer.save(product=self.get_product(), is_approved=False, is_verified_purchase=False)
 
 
 class OrderCreateView(generics.CreateAPIView):

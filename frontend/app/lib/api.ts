@@ -8,6 +8,7 @@ import type {
   ProductListResponse,
   CustomerOrder,
   CustomerOrderDetail,
+  CouponResult,
 } from "@/app/types/product";
 
 export interface AuthUser {
@@ -146,6 +147,25 @@ export async function getCategories(): Promise<Category[]> {
 
 export async function getBrands(): Promise<Brand[]> {
   return apiFetch<Brand[]>(`/api/brands/`);
+}
+
+export async function validateCoupon(code: string, subtotal: number): Promise<CouponResult> {
+  return apiFetch<CouponResult>("/api/coupons/validate/", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code, subtotal }),
+  });
+}
+
+export async function submitReview(
+  slug: string,
+  review: { customer_name: string; customer_email?: string; rating: number; title?: string; comment: string },
+) {
+  return apiFetch(`/api/products/${slug}/reviews/`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(review),
+  });
 }
 
 // ---------------------------------------------------------------------------

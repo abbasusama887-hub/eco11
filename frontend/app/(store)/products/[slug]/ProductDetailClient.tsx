@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { ProductDetail } from "@/app/types/product";
 import type { Product } from "@/app/types/product";
-import { getProducts } from "@/app/lib/api";
+import { getProducts, submitReview } from "@/app/lib/api";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
 import NotifyMeForm from "@/app/components/NotifyMeForm";
@@ -24,6 +24,7 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
   }, [product.images, product.thumbnail]);
 
   const [activeImage, setActiveImage] = useState(galleryImages[0] ?? null);
+  const [imageFailed, setImageFailed] = useState(false);
 
   const sizes = useMemo(() => {
     const map = new Map<number, string>();
@@ -42,6 +43,11 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
   const [quantity, setQuantity] = useState(1);
   const [justAdded, setJustAdded] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [zoomed, setZoomed] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ name: "", email: "", rating: 5, title: "", comment: "" });
+  const [reviewMessage, setReviewMessage] = useState<string | null>(null);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reviewSubmitting, setReviewSubmitting] = useState(false);
 
   const selectedVariant = useMemo(
     () =>
@@ -104,6 +110,41 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
 
   const hasDiscount = product.discount_percent > 0;
 
+  function moveImage(direction: -1 | 1) {
+    if (galleryImages.length < 2) return;
+    const currentIndex = activeImage ? galleryImages.indexOf(activeImage) : 0;
+    const nextIndex = (currentIndex + direction + galleryImages.length) % galleryImages.length;
+    setActiveImage(galleryImages[nextIndex]);
+    setImageFailed(false);
+    setZoomed(false);
+  }
+
+  async function handleReviewSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setReviewMessage(null);
+    setReviewError(null);
+    if (!reviewForm.name.trim() || !reviewForm.comment.trim()) {
+      setReviewError("Please add your name and review before submitting.");
+      return;
+    }
+    setReviewSubmitting(true);
+    try {
+      await submitReview(product.slug, {
+        customer_name: reviewForm.name.trim(),
+        customer_email: reviewForm.email.trim(),
+        rating: reviewForm.rating,
+        title: reviewForm.title.trim(),
+        comment: reviewForm.comment.trim(),
+      });
+      setReviewForm({ name: "", email: "", rating: 5, title: "", comment: "" });
+      setReviewMessage("Thanks. Your review was submitted for moderation.");
+    } catch (error) {
+      setReviewError(error instanceof Error ? error.message : "We could not submit your review.");
+    } finally {
+      setReviewSubmitting(false);
+    }
+  }
+
   useEffect(() => {
     let cancelled = false;
     getProducts({ category: product.category.slug, limit: 5 })
@@ -140,19 +181,28 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
         {/* Gallery */}
         <section aria-label="Product gallery">
           <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-slate-900 dark:shadow-[0_18px_45px_rgba(2,8,23,0.24)]">
-            {activeImage ? (
-              <Image
-                src={activeImage}
-                alt={product.name}
-                fill
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover transition-transform duration-500 hover:scale-[1.02]"
-                priority
-              />
+            {activeImage && !imageFailed ? (
+              <button type="button" onClick={() => setZoomed((value) => !value)} className="absolute inset-0 cursor-zoom-in overflow-hidden" aria-label={zoomed ? "Reset product image zoom" : "Zoom product image"}>
+                <Image
+                  src={activeImage}
+                  alt={product.name}
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  className={`object-cover transition-transform duration-500 ${zoomed ? "scale-150 cursor-zoom-out" : "hover:scale-[1.02]"}`}
+                  onError={() => setImageFailed(true)}
+                  priority
+                />
+              </button>
             ) : (
               <div className="flex h-full w-full items-center justify-center text-sm text-zinc-400">
                 No image
               </div>
+            )}
+            {galleryImages.length > 1 && (
+              <>
+                <button type="button" onClick={() => moveImage(-1)} aria-label="Previous product image" className="absolute left-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-slate-700 shadow-sm transition hover:bg-white">‹</button>
+                <button type="button" onClick={() => moveImage(1)} aria-label="Next product image" className="absolute right-3 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-slate-700 shadow-sm transition hover:bg-white">›</button>
+              </>
             )}
           </div>
 
@@ -162,7 +212,7 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
                 <button
                   key={img}
                   type="button"
-                  onClick={() => setActiveImage(img)}
+                  onClick={() => { setActiveImage(img); setImageFailed(false); }}
                     aria-label={`View image ${galleryImages.indexOf(img) + 1}`}
                     className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 transition-all ${
                     activeImage === img
@@ -398,52 +448,42 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
       </div>
 
       {/* Reviews */}
-      {product.reviews.length > 0 && (
-        <section className="mt-16 border-t border-slate-200 pt-10 dark:border-white/10">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-300">Customer feedback</span>
-              <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">
-                Reviews <span className="text-slate-400">({product.reviews.length})</span>
-              </h2>
-            </div>
-            {product.average_rating !== null && (
-              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <span className="text-2xl font-bold text-slate-950 dark:text-white">{product.average_rating.toFixed(1)}</span>
-                <span className="text-amber-400" aria-label="Average rating">★</span>
-                <span>Average rating</span>
-              </div>
-            )}
+      <section className="mt-16 border-t border-slate-200 pt-10 dark:border-white/10">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-300">Customer feedback</span>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Reviews <span className="text-slate-400">({product.reviews.length})</span></h2>
           </div>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {product.average_rating !== null && <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"><span className="text-2xl font-bold text-slate-950 dark:text-white">{product.average_rating.toFixed(1)}</span><span className="text-amber-400">★</span><span>Average rating</span></div>}
+        </div>
+        <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <div className="grid gap-4 sm:grid-cols-2">
+            {product.reviews.length === 0 && <p className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm text-slate-500 dark:border-white/15 dark:text-slate-400">No reviews yet. Be the first to share your experience.</p>}
             {product.reviews.map((review) => (
-              <div
-                key={review.id}
-                className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {review.customer_name}
-                  </span>
-                  <span className="text-sm tracking-wide text-amber-400" aria-label={`${review.rating} out of 5 stars`}>{"★".repeat(review.rating)}</span>
-                </div>
+              <div key={review.id} className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+                <div className="flex items-center justify-between"><span className="text-sm font-semibold text-slate-900 dark:text-white">{review.customer_name}</span><span className="text-sm tracking-wide text-amber-400" aria-label={`${review.rating} out of 5 stars`}>{"★".repeat(review.rating)}</span></div>
                 {review.is_verified_purchase && <span className="mt-3 inline-flex rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300">Verified purchase</span>}
-                {review.title && (
-                  <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">
-                    {review.title}
-                  </p>
-                )}
-                {review.comment && (
-                  <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">
-                    {review.comment}
-                  </p>
-                )}
+                {review.title && <p className="mt-3 text-sm font-semibold text-slate-800 dark:text-slate-200">{review.title}</p>}
+                {review.comment && <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-400">{review.comment}</p>}
               </div>
             ))}
           </div>
-        </section>
-      )}
-
+          <form onSubmit={handleReviewSubmit} className="rounded-2xl border border-slate-200 bg-white/70 p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-white">Write a review</h3>
+            <div className="mt-4 space-y-3">
+              <input required value={reviewForm.name} onChange={(event) => setReviewForm((current) => ({ ...current, name: event.target.value }))} placeholder="Your name" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white" />
+              <input type="email" value={reviewForm.email} onChange={(event) => setReviewForm((current) => ({ ...current, email: event.target.value }))} placeholder="Email (optional)" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white" />
+              <select value={reviewForm.rating} onChange={(event) => setReviewForm((current) => ({ ...current, rating: Number(event.target.value) }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white"><option value="5">5 stars</option><option value="4">4 stars</option><option value="3">3 stars</option><option value="2">2 stars</option><option value="1">1 star</option></select>
+              <input value={reviewForm.title} onChange={(event) => setReviewForm((current) => ({ ...current, title: event.target.value }))} placeholder="Review title (optional)" className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white" />
+              <textarea required rows={4} value={reviewForm.comment} onChange={(event) => setReviewForm((current) => ({ ...current, comment: event.target.value }))} placeholder="Tell shoppers what you think" className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-cyan-500 dark:border-white/10 dark:bg-white/[0.04] dark:text-white" />
+              {reviewMessage && <p className="text-xs text-emerald-700 dark:text-emerald-300">{reviewMessage}</p>}
+              {reviewError && <p role="alert" className="text-xs text-red-600 dark:text-red-400">{reviewError}</p>}
+              <button type="submit" disabled={reviewSubmitting} className="w-full rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400 disabled:opacity-60">{reviewSubmitting ? "Submitting..." : "Submit review"}</button>
+              <p className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">Reviews are moderated. Verified purchase status is assigned by the store, never by the form.</p>
+            </div>
+          </form>
+        </div>
+      </section>
       {relatedProducts.length > 0 && (
         <section className="mt-16 border-t border-slate-200 pt-10 dark:border-white/10">
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-300">From the same category</span>

@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useWishlist, type WishlistItem } from "@/app/context/WishlistContext";
 import { useCart } from "@/app/context/CartContext";
 import NotifyMeForm from "@/app/components/NotifyMeForm";
+import ConfirmDialog from "@/app/components/ConfirmDialog";
+import { useState } from "react";
 
 export default function WishlistPage() {
   const { items } = useWishlist();
@@ -82,6 +84,7 @@ function ArrowIcon({ className = "" }: { className?: string }) {
 function WishlistCard({ item }: { item: WishlistItem }) {
   const { removeItem } = useWishlist();
   const { addItem, items: cartItems } = useCart();
+  const [confirmingRemoval, setConfirmingRemoval] = useState(false);
 
   const alreadyInCart = cartItems.some(
     (c) => item.variantId !== undefined && c.variantId === item.variantId,
@@ -194,7 +197,7 @@ function WishlistCard({ item }: { item: WishlistItem }) {
           {/* Remove */}
           <button
             type="button"
-            onClick={() => removeItem(item.productId)}
+            onClick={() => setConfirmingRemoval(true)}
             aria-label="Remove from wishlist"
             className="flex items-center justify-center rounded-lg border border-zinc-200 px-3 py-2 text-zinc-400 transition hover:border-red-200 hover:bg-red-50 hover:text-red-500 dark:border-zinc-700 dark:hover:border-red-800 dark:hover:bg-red-950/30"
           >
@@ -215,6 +218,15 @@ function WishlistCard({ item }: { item: WishlistItem }) {
           </div>
         )}
       </div>
+      {confirmingRemoval && (
+        <ConfirmDialog
+          title="Remove from wishlist?"
+          description={`${item.productName} will be removed from your saved products.`}
+          confirmLabel="Remove"
+          onConfirm={() => { removeItem(item.productId); setConfirmingRemoval(false); }}
+          onCancel={() => setConfirmingRemoval(false)}
+        />
+      )}
     </div>
   );
 }

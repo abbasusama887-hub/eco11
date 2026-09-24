@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { getCategories, getProducts } from "@/app/lib/api";
+import { getBrands, getCategories, getProducts } from "@/app/lib/api";
 import ProductCard from "@/app/components/ProductCard";
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
   { label: "Price: low to high", value: "price_asc" },
   { label: "Price: high to low", value: "price_desc" },
+  { label: "Highest rated", value: "rating" },
+  { label: "Most popular", value: "popular" },
 ];
 
 const GENDER_OPTIONS = [
@@ -35,19 +37,27 @@ export default async function ShopPage({
 }) {
   const params = await searchParams;
 
-  const [productsResult, categoriesResult] = await Promise.allSettled([
+  const [productsResult, categoriesResult, brandsResult] = await Promise.allSettled([
     getProducts({
       search: params.search,
       category: params.category,
+      brand: params.brand,
       gender: params.gender,
-      ordering: (params.ordering as "price_asc" | "price_desc" | "newest") || "newest",
+      min_price: params.min_price,
+      max_price: params.max_price,
+      size: params.size,
+      rating: params.rating,
+      availability: params.availability as "in_stock" | "out_of_stock" | undefined,
+      ordering: (params.ordering as "price_asc" | "price_desc" | "newest" | "rating" | "popular") || "newest",
     }),
     getCategories(),
+    getBrands(),
   ]);
 
   const products = productsResult.status === "fulfilled" ? productsResult.value.results : [];
   const loadError = productsResult.status === "rejected" ? String(productsResult.reason) : null;
   const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
+  const brands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
 
   return (
     <main className="relative flex-1 overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
@@ -77,11 +87,21 @@ export default async function ShopPage({
         </header>
 
         <div className="mb-8 grid gap-4 lg:grid-cols-[240px_minmax(0,1fr)] lg:items-start">
-        <aside className="rounded-2xl border border-slate-200 bg-white/75 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] lg:sticky lg:top-24">
+        <details className="rounded-2xl border border-slate-200 bg-white/75 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] lg:hidden">
+          <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 dark:text-white">Filter products</summary>
+          <div className="mt-4"><FilterForm params={params} categories={categories} brands={brands} /></div>
+        </details>
+        <aside className="hidden rounded-2xl border border-slate-200 bg-white/75 p-4 shadow-sm backdrop-blur-xl dark:border-white/10 dark:bg-white/[0.04] lg:sticky lg:top-24 lg:block">
           <form action="/shop" method="get" className="mb-6">
             {params.category && <input type="hidden" name="category" value={params.category} />}
             {params.gender && <input type="hidden" name="gender" value={params.gender} />}
             {params.ordering && <input type="hidden" name="ordering" value={params.ordering} />}
+            {params.brand && <input type="hidden" name="brand" value={params.brand} />}
+            {params.min_price && <input type="hidden" name="min_price" value={params.min_price} />}
+            {params.max_price && <input type="hidden" name="max_price" value={params.max_price} />}
+            {params.size && <input type="hidden" name="size" value={params.size} />}
+            {params.rating && <input type="hidden" name="rating" value={params.rating} />}
+            {params.availability && <input type="hidden" name="availability" value={params.availability} />}
             <input
               type="search"
               name="search"
@@ -160,6 +180,7 @@ export default async function ShopPage({
               ))}
             </ul>
           </div>
+          <FilterForm params={params} categories={[]} brands={brands} compact />
         </aside>
 
         <div className="min-w-0">
@@ -188,12 +209,18 @@ export default async function ShopPage({
             </div>
           </div>
 
-          {(params.search || params.category || params.gender) && (
+          {(params.search || params.category || params.gender || params.brand || params.min_price || params.max_price || params.size || params.rating || params.availability) && (
             <div className="mt-4 flex flex-wrap items-center gap-2">
               <span className="mr-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Active filters</span>
               {params.search && <FilterChip label={`Search: ${params.search}`} href={buildQuery(params, { search: undefined })} />}
               {params.category && <FilterChip label={categories.find((c) => c.slug === params.category)?.name ?? params.category} href={buildQuery(params, { category: undefined })} />}
               {params.gender && <FilterChip label={params.gender} href={buildQuery(params, { gender: undefined })} />}
+              {params.brand && <FilterChip label={brands.find((brand) => brand.slug === params.brand)?.name ?? params.brand} href={buildQuery(params, { brand: undefined })} />}
+              {params.min_price && <FilterChip label={`From Rs ${params.min_price}`} href={buildQuery(params, { min_price: undefined })} />}
+              {params.max_price && <FilterChip label={`To Rs ${params.max_price}`} href={buildQuery(params, { max_price: undefined })} />}
+              {params.size && <FilterChip label={`Size ${params.size}`} href={buildQuery(params, { size: undefined })} />}
+              {params.rating && <FilterChip label={`${params.rating}+ stars`} href={buildQuery(params, { rating: undefined })} />}
+              {params.availability && <FilterChip label={params.availability === "in_stock" ? "In stock" : "Out of stock"} href={buildQuery(params, { availability: undefined })} />}
               <Link href="/shop" className="text-xs font-semibold text-cyan-700 hover:text-cyan-500 dark:text-cyan-300">Clear all</Link>
             </div>
           )}
@@ -232,5 +259,64 @@ function FilterChip({ label, href }: { label: string; href: string }) {
     <Link href={href} className="inline-flex items-center gap-1.5 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-800 transition-colors hover:border-cyan-400 dark:border-cyan-300/20 dark:bg-cyan-300/10 dark:text-cyan-200">
       {label}<span aria-hidden="true">×</span>
     </Link>
+  );
+}
+
+function FilterForm({
+  params,
+  categories,
+  brands,
+  compact = false,
+}: {
+  params: Record<string, string | undefined>;
+  categories: { id: number; name: string; slug: string }[];
+  brands: { id: number; name: string; slug: string }[];
+  compact?: boolean;
+}) {
+  return (
+    <form action="/shop" method="get" className="space-y-4 border-t border-slate-200 pt-5 dark:border-white/10">
+      {params.search && <input type="hidden" name="search" value={params.search} />}
+      {params.ordering && <input type="hidden" name="ordering" value={params.ordering} />}
+      {compact && params.category && <input type="hidden" name="category" value={params.category} />}
+      {compact && params.gender && <input type="hidden" name="gender" value={params.gender} />}
+      {!compact && (
+        <>
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Category
+            <select name="category" defaultValue={params.category ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+              <option value="">All categories</option>
+              {categories.map((category) => <option key={category.id} value={category.slug}>{category.name}</option>)}
+            </select>
+          </label>
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+            Gender
+            <select name="gender" defaultValue={params.gender ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+              <option value="">All genders</option>
+              {GENDER_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+          </label>
+        </>
+      )}
+      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">
+        Brand
+        <select name="brand" defaultValue={params.brand ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white">
+          <option value="">All brands</option>
+          {brands.map((brand) => <option key={brand.id} value={brand.slug}>{brand.name}</option>)}
+        </select>
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Min price<input name="min_price" defaultValue={params.min_price ?? ""} type="number" min="0" placeholder="0" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white" /></label>
+        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Max price<input name="max_price" defaultValue={params.max_price ?? ""} type="number" min="0" placeholder="Any" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white" /></label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Size<input name="size" defaultValue={params.size ?? ""} placeholder="e.g. 8" className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white" /></label>
+        <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Rating<select name="rating" defaultValue={params.rating ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white"><option value="">Any</option><option value="4">4+ stars</option><option value="3">3+ stars</option></select></label>
+      </div>
+      <label className="block text-xs font-semibold text-slate-600 dark:text-slate-300">Availability<select name="availability" defaultValue={params.availability ?? ""} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-white/[0.04] dark:text-white"><option value="">Any availability</option><option value="in_stock">In stock</option><option value="out_of_stock">Out of stock</option></select></label>
+      <div className="flex items-center gap-2">
+        <button type="submit" className="flex-1 rounded-xl bg-cyan-500 px-3 py-2.5 text-xs font-bold text-slate-950 transition hover:bg-cyan-400">Apply filters</button>
+        <Link href="/shop" className="rounded-xl border border-slate-200 px-3 py-2.5 text-xs font-semibold text-slate-600 transition hover:border-cyan-300 hover:text-cyan-700 dark:border-white/10 dark:text-slate-300">Clear all</Link>
+      </div>
+    </form>
   );
 }

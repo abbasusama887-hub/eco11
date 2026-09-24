@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
-import { useToast } from "@/app/components/ToastProvider";
 import type { Product } from "@/app/types/product";
 
 const PRODUCT_SIZES = ["6", "7", "8", "9", "10", "11"];
@@ -15,11 +14,11 @@ export default function ProductCard({ product }: { product: Product }) {
   const hasDiscount = product.discount_percent > 0;
   const { toggleItem, isWishlisted } = useWishlist();
   const { addItem } = useCart();
-  const { showToast } = useToast();
   const wishlisted = isWishlisted(product.id);
   const router = useRouter();
   const [quickViewOpen, setQuickViewOpen] = useState(false);
   const [selectedSize, setSelectedSize] = useState(PRODUCT_SIZES[2]);
+  const [imageFailed, setImageFailed] = useState(false);
   const badges = getProductBadges(product);
 
   function persistRecentlyViewed() {
@@ -72,7 +71,6 @@ export default function ProductCard({ product }: { product: Product }) {
       },
       1,
     );
-    showToast({ title: "Added to cart", description: `${product.name} in size ${selectedSize} was added to your cart.` });
     setQuickViewOpen(false);
   }
 
@@ -82,13 +80,14 @@ export default function ProductCard({ product }: { product: Product }) {
     <>
       <article className="group relative flex min-h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950/90 text-white shadow-[0_10px_28px_rgba(2,8,23,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 hover:border-cyan-300/20 hover:shadow-[0_18px_38px_rgba(2,8,23,0.34),0_0_24px_rgba(34,211,238,0.08)]">
         <div className="relative aspect-[4/5] w-full overflow-hidden bg-slate-900">
-          {product.thumbnail ? (
+          {product.thumbnail && !imageFailed ? (
             <Image
               src={product.thumbnail}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
               className="object-cover transition-transform duration-400 ease-out group-hover:scale-[1.03]"
+              onError={() => setImageFailed(true)}
             />
           ) : (
             <div className="flex h-full w-full items-center justify-center text-sm text-slate-500">
@@ -150,7 +149,6 @@ export default function ProductCard({ product }: { product: Product }) {
                   },
                   1,
                 );
-                showToast({ title: "Added to cart", description: `${product.name} was added to your cart.` });
               }}
             >
               <CartIcon />

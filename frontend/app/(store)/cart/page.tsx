@@ -2,12 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { useCart } from "@/app/context/CartContext";
 import { useWishlist } from "@/app/context/WishlistContext";
+import ConfirmDialog from "@/app/components/ConfirmDialog";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, subtotal, itemCount } = useCart();
   const { toggleItem } = useWishlist();
+  const [pendingRemoval, setPendingRemoval] = useState<(typeof items)[number] | null>(null);
 
   function saveForLater(item: (typeof items)[number]) {
     toggleItem({
@@ -53,6 +56,7 @@ export default function CartPage() {
   }
 
   return (
+    <>
     <main className="relative flex-1 overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-[radial-gradient(circle_at_12%_10%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_92%_18%,rgba(37,99,235,0.06),transparent_28%)]" />
       <div className="relative mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:py-14">
@@ -98,7 +102,7 @@ export default function CartPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => removeItem(item.variantId)}
+                  onClick={() => setPendingRemoval(item)}
                   aria-label="Remove from cart"
                   title="Remove from cart"
                   className="rounded-lg p-2 text-slate-400 transition-all hover:scale-105 hover:bg-red-50 hover:text-red-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-400 dark:hover:bg-red-400/10"
@@ -173,6 +177,19 @@ export default function CartPage() {
         </div>
       </div>
     </main>
+    {pendingRemoval && (
+      <ConfirmDialog
+        title="Remove this item?"
+        description={`${pendingRemoval.productName} will be removed from your cart.`}
+        confirmLabel="Remove"
+        onConfirm={() => {
+          removeItem(pendingRemoval.variantId);
+          setPendingRemoval(null);
+        }}
+        onCancel={() => setPendingRemoval(null)}
+      />
+    )}
+    </>
   );
 }
 

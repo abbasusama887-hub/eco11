@@ -7,16 +7,7 @@ import Logo from "@/app/components/Logo";
 import { useCart } from "@/app/context/CartContext";
 import { useAuth } from "@/app/context/AuthContext";
 import { useWishlist } from "@/app/context/WishlistContext";
-
-
-function SearchIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="2" />
-      <path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    </svg>
-  );
-}
+import SearchAutocomplete from "@/app/components/SearchAutocomplete";
 
 function CartIcon() {
   return (
@@ -147,13 +138,7 @@ export default function Header() {
 
         <div className="flex items-center gap-0.5 sm:gap-1">
           {/* Search */}
-          <Link
-            href="/shop"
-            aria-label="Search products"
-            className="group hidden rounded-xl p-2 text-slate-700 transition-all duration-200 hover:scale-105 hover:bg-cyan-50 hover:text-cyan-700 hover:shadow-[0_0_18px_rgba(34,211,238,0.18)] sm:inline-flex"
-          >
-            <SearchIcon />
-          </Link>
+          <SearchAutocomplete className="hidden sm:block" />
 
           {/* Wishlist */}
           <Link
@@ -266,6 +251,7 @@ export default function Header() {
       {menuOpen && (
             <nav className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white/95 text-slate-950 shadow-[0_16px_40px_rgba(15,23,42,0.18)] backdrop-blur-2xl md:hidden">
           <div className="flex animate-[fade-in_180ms_ease-out] flex-col gap-1 px-3 py-3">
+            <SearchAutocomplete className="sm:hidden" />
             <div className="mt-1 border-t border-slate-200 pt-2">
               {isLoggedIn && user ? (
                 <>

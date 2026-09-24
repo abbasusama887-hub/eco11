@@ -22,6 +22,7 @@ from .models import (
     ProductImage,
     ProductVariant,
     Review,
+    Coupon,
     Size,
     StockAlert,
 )
@@ -217,6 +218,24 @@ class ReviewSerializer(serializers.ModelSerializer):
         ]
 
 
+class ReviewCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ["customer_name", "customer_email", "rating", "title", "comment"]
+
+    def validate_customer_name(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Enter your name.")
+        return value
+
+    def validate_comment(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("Write a review before submitting.")
+        return value
+
+
 class ProductListSerializer(serializers.ModelSerializer):
     """Lightweight serializer for grid/card views (product listing pages)."""
 
@@ -296,6 +315,7 @@ class DeliveryBoyOrderSerializer(serializers.ModelSerializer):
 
 class OrderCreateSerializer(serializers.ModelSerializer):
     items = OrderItemWriteSerializer(many=True, write_only=True)
+    coupon_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
     order_number = serializers.CharField(read_only=True)
     subtotal = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     total = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
@@ -306,11 +326,12 @@ class OrderCreateSerializer(serializers.ModelSerializer):
         fields = [
             "id", "order_number", "status", "full_name", "email", "phone",
             "address", "city", "notes", "items", "order_items",
+            "coupon_code",
             "payment_method",
             "delivery_address", "delivery_city", "delivery_area",
             "delivery_latitude", "delivery_longitude", "location_source",
             "location_accuracy", "location_captured_at",
-            "subtotal", "total",
+            "subtotal", "discount_total", "total",
         ]
         read_only_fields = ["id", "status"]
 
@@ -332,6 +353,7 @@ class OrderCreateSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         items_data = validated_data.pop("items")
+        coupon_code = validated_data.pop("coupon_code", "").strip().upper()
         request = self.context.get("request")
         user = request.user if request and request.user.is_authenticated else None
         if user:
@@ -368,7 +390,30 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             variant.save(update_fields=["stock_quantity"])
 
         order.recalculate_totals()
-        order.save(update_fields=["subtotal", "total"])
+        if coupon_code:
+            coupon = Coupon.objects.filter(code=coupon_code, is_active=True).first()
+            now = timezone.now()
+            if not coupon or not (coupon.valid_from <= now <= coupon.valid_to):
+                order.delete()
+                raise serializers.ValidationError({"coupon_code": "That coupon is no longer valid."})
+            if coupon.usage_limit is not None and coupon.times_used >= coupon.usage_limit:
+                order.delete()
+                raise serializers.ValidationError({"coupon_code": "That coupon has reached its usage limit."})
+            if order.subtotal < coupon.min_purchase_amount:
+                order.delete()
+                raise serializers.ValidationError({"coupon_code": "This order does not meet the coupon minimum."})
+            if coupon.discount_type == "percent":
+                discount = order.subtotal * coupon.discount_value / 100
+                if coupon.max_discount_amount is not None:
+                    discount = min(discount, coupon.max_discount_amount)
+            else:
+                discount = coupon.discount_value
+            order.coupon = coupon
+            order.discount_total = min(discount, order.subtotal)
+            order.recalculate_totals()
+            coupon.times_used += 1
+            coupon.save(update_fields=["times_used", "updated_at"])
+        order.save(update_fields=["coupon", "discount_total", "subtotal", "total", "updated_at"])
         return order
 
 
