@@ -344,7 +344,7 @@ function FloatingChatButton() {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+    <div className="fixed bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
       <div
         className={`flex flex-col items-end gap-3 transition-all duration-300 ease-out ${
           isOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
