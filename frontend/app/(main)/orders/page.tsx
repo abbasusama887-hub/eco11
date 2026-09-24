@@ -31,13 +31,16 @@ export default function OrdersPage() {
           <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">Orders</h1>
           <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Track purchases and manage eligible cancellations.</p>
         </header>
-        {loading && <p className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-500 dark:border-white/10 dark:bg-white/[0.04]">Loading your orders...</p>}
+        {loading && <OrderSkeleton />}
         {error && <p role="alert" className="rounded-2xl border border-red-200 bg-red-50 p-6 text-sm text-red-600">{error}</p>}
         {!loading && !error && orders.length === 0 && (
-          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center dark:border-white/10 dark:bg-white/[0.04]">
-            <h2 className="text-lg font-semibold">No orders yet</h2>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your completed purchases will appear here.</p>
-            <Link href="/shop" className="mt-6 inline-flex rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950">Browse shoes</Link>
+          <div className="rounded-2xl border border-slate-200 bg-white p-10 text-center shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-200 bg-cyan-50 text-cyan-600 dark:border-cyan-300/20 dark:bg-cyan-300/10 dark:text-cyan-200">
+              <PackageIcon />
+            </div>
+            <h2 className="mt-5 text-lg font-semibold">No orders yet</h2>
+            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Your completed purchases and delivery updates will appear here.</p>
+            <Link href="/shop" className="mt-6 inline-flex rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 transition-transform hover:-translate-y-0.5">Browse shoes</Link>
           </div>
         )}
         <div className="space-y-4">
@@ -59,5 +62,39 @@ export default function OrdersPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function OrderSkeleton() {
+  return (
+    <div className="space-y-4">
+      {Array.from({ length: 3 }).map((_, index) => (
+        <div key={index} className="animate-pulse rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-white/[0.04] sm:p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="h-3 w-28 rounded-full bg-slate-200 dark:bg-white/10" />
+              <div className="h-2.5 w-40 rounded-full bg-slate-200 dark:bg-white/10" />
+            </div>
+            <div className="h-7 w-20 rounded-full bg-slate-200 dark:bg-white/10" />
+          </div>
+          <div className="mt-6 flex items-end justify-between gap-4 border-t border-slate-100 pt-4 dark:border-white/10">
+            <div className="space-y-2">
+              <div className="h-2.5 w-28 rounded-full bg-slate-200 dark:bg-white/10" />
+              <div className="h-2.5 w-36 rounded-full bg-slate-200 dark:bg-white/10" />
+            </div>
+            <div className="h-8 w-24 rounded-full bg-slate-200 dark:bg-white/10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function PackageIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 8.5 12 4l7 4.5v7L12 20l-7-4.5v-7Z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round"/>
+      <path d="M12 4v8m7-3.5-7 4.5-7-4.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }

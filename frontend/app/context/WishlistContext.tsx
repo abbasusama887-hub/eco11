@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useToast } from "@/app/components/ToastProvider";
 
 export interface WishlistItem {
   productId: number;
@@ -40,6 +41,7 @@ const WishlistContext = createContext<WishlistContextValue | null>(null);
 const STORAGE_KEY = "ndps_wishlist";
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
+  const { showToast } = useToast();
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
 
@@ -67,15 +69,28 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [items, hydrated]);
 
   const toggleItem = (item: WishlistItem) => {
+    const exists = items.some((currentItem) => currentItem.productId === item.productId);
     setItems((prev) => {
-      const exists = prev.find((i) => i.productId === item.productId);
-      if (exists) return prev.filter((i) => i.productId !== item.productId);
+      if (exists) {
+        return prev.filter((i) => i.productId !== item.productId);
+      }
+
       return [...prev, item];
+    });
+    showToast({
+      title: exists ? "Removed from wishlist" : "Added to wishlist",
+      description: exists
+        ? `${item.productName} was removed from your wishlist.`
+        : `${item.productName} was saved to your wishlist.`,
     });
   };
 
   const removeItem = (productId: number) => {
+    const removed = items.find((i) => i.productId === productId);
     setItems((prev) => prev.filter((i) => i.productId !== productId));
+    if (removed) {
+      showToast({ title: "Removed from wishlist", description: `${removed.productName} was removed from your wishlist.` });
+    }
   };
 
   const isWishlisted = (productId: number) =>

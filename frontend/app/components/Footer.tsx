@@ -5,27 +5,37 @@ const FOOTER_LINKS: { heading: string; links: { label: string; href: string }[] 
   {
     heading: "Shop",
     links: [
-      { label: "Men", href: "/" },
-      { label: "Women", href: "/" },
-      { label: "Kids", href: "/" },
-      { label: "Sale", href: "/" },
+      { label: "All Products", href: "/shop" },
+      { label: "New Arrivals", href: "/shop" },
+      { label: "Categories", href: "/shop" },
+      { label: "Best Sellers", href: "/shop" },
     ],
   },
   {
-    heading: "Help",
+    heading: "Categories",
     links: [
-      { label: "Shipping", href: "/" },
-      { label: "Returns", href: "/" },
-      { label: "Size guide", href: "/" },
-      { label: "Contact us", href: "/" },
+      { label: "Running", href: "/shop" },
+      { label: "Lifestyle", href: "/shop" },
+      { label: "Sneakers", href: "/shop" },
+      { label: "Sports", href: "/shop" },
     ],
   },
   {
-    heading: "Company",
+    heading: "About",
     links: [
-      { label: "About NDPS", href: "/" },
-      { label: "Store locator", href: "/" },
-      { label: "Careers", href: "/" },
+      { label: "About Us", href: "/" },
+      { label: "Contact", href: "mailto:usama.developer.500@gmail.com" },
+      { label: "Shipping Policy", href: "/" },
+      { label: "Return Policy", href: "/" },
+    ],
+  },
+  {
+    heading: "Legal",
+    links: [
+      { label: "Privacy Policy", href: "/" },
+      { label: "Terms", href: "/" },
+      { label: "Shipping Policy", href: "/" },
+      { label: "Return Policy", href: "/" },
     ],
   },
 ];
@@ -123,21 +133,13 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-slate-500">
-            © {new Date().getFullYear()} NDPS Store. All rights reserved.
+            © {new Date().getFullYear()} bazar. All rights reserved.
           </p>
-          <div className="flex gap-5">
-            <Link
-              href="/"
-              className="text-xs text-slate-500 transition-colors hover:text-cyan-700"
-            >
-              Privacy policy
-            </Link>
-            <Link
-              href="/"
-              className="text-xs text-slate-500 transition-colors hover:text-cyan-700"
-            >
-              Terms of service
-            </Link>
+          <div className="flex flex-wrap gap-4 sm:gap-5">
+            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Privacy Policy</Link>
+            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Terms</Link>
+            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Shipping Policy</Link>
+            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Return Policy</Link>
           </div>
         </div>
       </div>

@@ -6,8 +6,8 @@ import { useEffect, useState } from "react";
 import { cancelMyOrder, getMyOrder } from "@/app/lib/api";
 import type { CustomerOrderDetail } from "@/app/types/product";
 
-const timeline = ["pending", "confirmed", "processing", "packed", "assigned", "out_for_delivery", "delivered"];
-const labels: Record<string, string> = { pending: "Order placed", confirmed: "Confirmed", processing: "Processing", packed: "Packed", assigned: "Delivery boy assigned", out_for_delivery: "Out for delivery", delivered: "Delivered", cancelled: "Cancelled", rejected: "Rejected", returned: "Returned" };
+const timeline = ["confirmed", "processing", "packed", "out_for_delivery", "delivered"];
+const labels: Record<string, string> = { confirmed: "Order Confirmed", processing: "Processing", packed: "Packed", out_for_delivery: "Out for Delivery", delivered: "Delivered", pending: "Order placed", assigned: "Delivery boy assigned", cancelled: "Cancelled", rejected: "Rejected", returned: "Returned" };
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -54,7 +54,31 @@ export default function OrderDetailPage() {
 
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-white/[0.04] sm:p-7">
           <h2 className="text-lg font-bold">Order tracking</h2>
-          {isTerminal ? <p className="mt-5 rounded-xl bg-slate-100 p-4 text-sm font-semibold dark:bg-white/[0.06]">{labels[order.status]}</p> : <div className="mt-6 grid grid-cols-4 gap-2 sm:grid-cols-7">{timeline.map((status, index) => <div key={status} className="text-center"><div className={`mx-auto h-3 w-3 rounded-full ${index <= currentIndex ? "bg-cyan-500" : "bg-slate-200 dark:bg-white/15"}`} /><p className={`mt-2 text-[10px] leading-4 sm:text-xs ${index <= currentIndex ? "font-bold text-cyan-700 dark:text-cyan-300" : "text-slate-400"}`}>{labels[status]}</p></div>)}</div>}
+          {isTerminal ? (
+            <p className="mt-5 rounded-xl bg-slate-100 p-4 text-sm font-semibold dark:bg-white/[0.06]">{labels[order.status]}</p>
+          ) : (
+            <div className="mt-6">
+              <div className="grid gap-3 sm:grid-cols-5">
+                {timeline.map((status, index) => {
+                  const stepIndex = timeline.indexOf(order.status) >= 0 ? timeline.indexOf(order.status) : 0;
+                  const isActive = index <= stepIndex;
+                  return (
+                    <div key={status} className="relative">
+                      <div className="flex items-center gap-2">
+                        <div className={`flex h-8 w-8 items-center justify-center rounded-full border text-[10px] font-bold ${isActive ? "border-cyan-500 bg-cyan-500 text-white" : "border-slate-200 bg-slate-100 text-slate-400 dark:border-white/10 dark:bg-white/[0.03] dark:text-slate-500"}`}>
+                          {index + 1}
+                        </div>
+                        <div className={`h-px flex-1 ${isActive ? "bg-cyan-500" : "bg-slate-200 dark:bg-white/10"}`} />
+                      </div>
+                      <p className={`mt-2 text-[10px] font-medium leading-4 sm:text-xs ${isActive ? "text-cyan-700 dark:text-cyan-300" : "text-slate-400"}`}>
+                        {labels[status]}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </section>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_330px]">
