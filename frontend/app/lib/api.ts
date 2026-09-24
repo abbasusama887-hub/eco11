@@ -22,17 +22,19 @@ export interface AuthResponse {
   user: AuthUser;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  // `cache: "no-store"` is a Next.js server-fetch option — passing it in a
-  // browser fetch() call can cause a TypeError in some runtimes. Strip it
-  // from the options before handing off to the native fetch.
-  const { cache: _cache, ...browserSafeInit } = (init ?? {}) as RequestInit & { cache?: unknown };
+  const requestInit: RequestInit = {
+    ...init,
+    cache: "no-store",
+  };
 
   let res: Response;
+
   try {
-    res = await fetch(`${API_BASE_URL}${path}`, browserSafeInit);
+    res = await fetch(`${API_BASE_URL}${path}`, requestInit);
   } catch {
     throw new Error(
       "Could not reach the server. Make sure the Django backend is running.",
@@ -41,10 +43,12 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
   if (!res.ok) {
     const body = await res.json().catch(() => null);
+
     const message =
       body && typeof body === "object"
         ? Object.values(body).flat().join(" ")
         : `Request failed (${res.status})`;
+
     throw new Error(message || `Request failed (${res.status})`);
   }
 
