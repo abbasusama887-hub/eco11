@@ -134,7 +134,7 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 px-2 pt-2 sm:px-3">
+    <header className="fixed inset-x-0 top-0 z-50 h-16 bg-[#FFFFFF] px-2 pt-2 sm:px-3">
       <div
         className={`flex h-14 w-full items-center justify-between rounded-2xl border px-3 text-slate-950 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-500 sm:px-5 ${
           isScrolled
