@@ -46,7 +46,6 @@ export function SavedItemsProvider({ children }: { children: ReactNode }) {
     removeItem: (variantId) => setItems((current) => current.filter((item) => item.variantId !== variantId)),
   }), [items, showToast]);
 
-  if (!hydrated) return null;
   return <SavedItemsContext.Provider value={value}>{children}</SavedItemsContext.Provider>;
 }
 

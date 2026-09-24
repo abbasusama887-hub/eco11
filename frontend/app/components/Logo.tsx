@@ -5,11 +5,11 @@ export default function Logo({ className = "" }: { className?: string }) {
     <Link
       href="/"
       className={`group flex items-center gap-2.5 ${className}`}
-      aria-label="bazar Store — home"
+      aria-label="Bazar Store — home"
     >
       <img
         src="/logo.jpg"
-        alt="bazar logo"
+        alt="Bazar Store logo"
         width={34}
         height={34}
         className="h-8 w-8 shrink-0 rounded-lg object-cover"

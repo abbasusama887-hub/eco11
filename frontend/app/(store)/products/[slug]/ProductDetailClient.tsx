@@ -177,16 +177,24 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
     <main className="relative flex-1 overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[540px] bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_92%_18%,rgba(37,99,235,0.06),transparent_28%)]" />
       <div className="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
-      <nav aria-label="Breadcrumb" className="mb-7 flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-        <Link href="/" className="transition-colors hover:text-cyan-700 dark:hover:text-cyan-200">
-          Home
-        </Link>
-        <span aria-hidden="true">/</span>
-        <Link href="/shop" className="transition-colors hover:text-cyan-700 dark:hover:text-cyan-200">
-          Shop
-        </Link>
-        <span aria-hidden="true">/</span>
-        <span className="truncate font-medium text-slate-900 dark:text-slate-200">{product.name}</span>
+      <nav aria-label="Breadcrumb" className="mb-7 text-xs text-slate-500 dark:text-slate-400">
+        <ol className="flex flex-wrap items-center gap-2">
+          <li>
+            <Link href="/" className="transition-colors hover:text-cyan-700 dark:hover:text-cyan-200">
+              Home
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li>
+            <Link href="/shop" className="transition-colors hover:text-cyan-700 dark:hover:text-cyan-200">
+              Shop
+            </Link>
+          </li>
+          <li aria-hidden="true">/</li>
+          <li aria-current="page">
+            <span className="truncate font-medium text-slate-900 dark:text-slate-200">{product.name}</span>
+          </li>
+        </ol>
       </nav>
 
       <div className="grid gap-8 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,0.92fr)] lg:gap-12">

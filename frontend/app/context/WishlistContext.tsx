@@ -104,8 +104,6 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     [items, itemCount],
   );
 
-  if (!hydrated) return null;
-
   return (
     <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>
   );

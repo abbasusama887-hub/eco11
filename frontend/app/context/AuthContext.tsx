@@ -61,18 +61,14 @@ function clearSession(): void {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [hydrated, setHydrated] = useState(false);
 
   // On mount: restore session from localStorage (no extra network request)
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(USER_KEY);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (raw) setUser(JSON.parse(raw));
     } catch {
       // corrupt cache — ignore, user will need to log in again
-    } finally {
-      setHydrated(true);
     }
   }, []);
 
@@ -119,9 +115,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [user],
   );
-
-  // Don't render children until we've checked localStorage to avoid flicker
-  if (!hydrated) return null;
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

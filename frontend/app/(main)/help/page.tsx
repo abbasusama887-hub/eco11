@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "Help Center",
+  alternates: {
+    canonical: "/help",
+  },
+};
 
 const FAQS = [
   ["How do I track an order?", "Open Account settings or Orders, then choose View order to see the latest tracking status."],

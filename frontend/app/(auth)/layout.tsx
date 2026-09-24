@@ -1,4 +1,12 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 /** Auth pages (login, signup) — full-screen, no Header or Footer. */
 export default function AuthLayout({ children }: { children: ReactNode }) {

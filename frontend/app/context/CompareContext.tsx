@@ -61,7 +61,6 @@ export function CompareProvider({ children }: { children: ReactNode }) {
     clear: () => setItems([]),
   }), [items, showToast]);
 
-  if (!hydrated) return null;
   return <CompareContext.Provider value={value}>{children}</CompareContext.Provider>;
 }
 

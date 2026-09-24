@@ -6,6 +6,7 @@ import { WishlistProvider } from "@/app/context/WishlistContext";
 import { ToastProvider } from "@/app/components/ToastProvider";
 import { CompareProvider } from "@/app/context/CompareContext";
 import { SavedItemsProvider } from "@/app/context/SavedItemsContext";
+import { STORE } from "@/app/lib/store";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,13 +19,50 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+const siteUrl =
+  rawSiteUrl && rawSiteUrl.length > 0
+    ? rawSiteUrl.replace(/\/+$/, "")
+    : "https://eco11-dun.vercel.app";
+
 export const metadata: Metadata = {
-  title: "bazar",
-  description: "Shoes for every step — running, courts, and the street in between.",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: STORE.name,
+    template: `%s | ${STORE.name}`,
+  },
+  description: STORE.description,
+  alternates: {
+    canonical: `${siteUrl}/`,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: STORE.name,
+    title: STORE.name,
+    description: STORE.description,
+    images: [
+      {
+        url: STORE.logo,
+        alt: STORE.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: STORE.name,
+    description: STORE.description,
+    images: [STORE.logo],
+  },
   icons: {
-    icon: "/logo.jpg",
-    shortcut: "/logo.jpg",
-    apple: "/logo.jpg",
+    icon: STORE.logo,
+    shortcut: STORE.logo,
+    apple: STORE.logo,
   },
 };
 

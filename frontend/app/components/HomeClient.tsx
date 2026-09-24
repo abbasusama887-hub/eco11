@@ -103,11 +103,20 @@ export default function HomeClient({ products, heroSlides, loadError }: Props) {
             </span>
 
             <h1 className="mt-4 max-w-xl text-3xl font-extrabold leading-[1.05] tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
-              {slide.headline}
+              Bazar Store
+              <span className="mt-2 block text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
+                Shoes for Every Step
+              </span>
             </h1>
 
-            {slide.sub && (
+            {slide.headline && (
               <p className="mt-4 max-w-lg text-sm leading-6 text-slate-700 sm:text-base">
+                {slide.headline}
+              </p>
+            )}
+
+            {slide.sub && (
+              <p className="mt-2 max-w-lg text-sm leading-6 text-slate-700 sm:text-base">
                 {slide.sub}
               </p>
             )}
