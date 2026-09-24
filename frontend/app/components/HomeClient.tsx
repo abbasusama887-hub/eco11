@@ -209,6 +209,8 @@ export default function HomeClient({ products, heroSlides, loadError }: Props) {
           </div>
         )}
       </section>
+
+      <FloatingChatButton />
     </main>
   );
 }
@@ -336,6 +338,50 @@ function ProductCardHome({ product }: { product: Product }) {
   );
 }
 
+function FloatingChatButton() {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 sm:bottom-6 sm:right-6">
+      <div
+        className={`flex flex-col items-end gap-3 transition-all duration-300 ease-out ${
+          isOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-2 opacity-0"
+        }`}
+      >
+        <a
+          href="https://wa.me/923047345026"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Chat on WhatsApp"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-200/90 text-slate-600 shadow-[0_8px_22px_rgba(15,23,42,0.12)] transition-all duration-200 hover:scale-105 hover:bg-slate-300 hover:text-slate-700"
+          title="WhatsApp: 03047345026"
+        >
+          <WhatsAppIcon />
+        </a>
+
+        <a
+          href="mailto:usama.developer.500@gmail.com"
+          aria-label="Email us"
+          className="flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-slate-200/90 text-slate-600 shadow-[0_8px_22px_rgba(15,23,42,0.12)] transition-all duration-200 hover:scale-105 hover:bg-slate-300 hover:text-slate-700"
+          title="Email: usama.developer.500@gmail.com"
+        >
+          <EmailIcon />
+        </a>
+      </div>
+
+      <button
+        type="button"
+        aria-label={isOpen ? "Close chat options" : "Open chat options"}
+        aria-expanded={isOpen}
+        onClick={() => setIsOpen((value) => !value)}
+        className="flex h-14 w-14 items-center justify-center rounded-full border border-slate-200 bg-slate-200/95 text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.18)] transition-all duration-300 hover:scale-105 hover:bg-slate-300 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      >
+        <ChatIcon isOpen={isOpen} />
+      </button>
+    </div>
+  );
+}
+
 function HomeActionButton({
   label,
   onClick,
@@ -355,6 +401,34 @@ function HomeActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M19.05 4.95A9.7 9.7 0 0 0 12.06 2C6.64 2 2.2 6.42 2.2 11.84a9.8 9.8 0 0 0 1.35 4.96L2 22l5.4-1.42a9.8 9.8 0 0 0 4.66 1.4h.01c5.42 0 9.83-4.42 9.83-9.84 0-2.62-1.02-5.09-2.85-6.9Zm-7 14.04h-.01c-1.2 0-2.38-.32-3.41-.93l-.24-.14-3.2.84.85-3.12-.16-.26A7.78 7.78 0 0 1 4.29 12c0-4.31 3.51-7.82 7.83-7.82a7.8 7.8 0 0 1 5.53 2.37 7.76 7.76 0 0 1 2.28 5.47c0 4.32-3.51 7.82-7.83 7.82Zm4.29-5.86c-.24-.12-1.41-.69-1.63-.77-.21-.08-.37-.12-.52.12-.15.24-.59.77-.73.93-.13.15-.27.17-.5.06-.24-.12-1.02-.37-1.94-1.19-.72-.64-1.2-1.43-1.34-1.67-.14-.24-.02-.36.11-.48.11-.11.24-.28.37-.42.12-.14.16-.24.24-.4.08-.15.04-.29-.02-.4-.06-.12-.52-1.26-.71-1.72-.18-.45-.37-.4-.52-.4h-.44c-.15 0-.39.06-.59.29-.2.24-.76.74-.76 1.81 0 1.07.78 2.1.89 2.25.11.16 1.53 2.35 3.72 3.28.52.22.92.35 1.24.45.52.17.99.15 1.37.09.42-.06 1.41-.58 1.61-1.13.21-.55.21-1.02.15-1.12-.06-.1-.22-.16-.46-.28Z" />
+    </svg>
+  );
+}
+
+function EmailIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9A2.5 2.5 0 0 1 17.5 19h-11A2.5 2.5 0 0 1 4 16.5v-9Zm2.1-.5 6.9 5.2 6.9-5.2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  );
+}
+
+function ChatIcon({ isOpen }: { isOpen: boolean }) {
+  return isOpen ? (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/>
+    </svg>
+  ) : (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 9.5h10M7 14.5h7M5 4.5h14a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-5 4v-4H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
   );
 }
 
