@@ -23,7 +23,7 @@ const FOOTER_LINKS: { heading: string; links: { label: string; href: string }[] 
   {
     heading: "About",
     links: [
-      { label: "About Us", href: "/" },
+      { label: "About Us", href: "/store" },
       { label: "Contact", href: "mailto:usama.developer.500@gmail.com" },
       { label: "Help Center", href: "/help" },
       { label: "Shipping Policy", href: "/" },

@@ -1,16 +1,12 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { getBrands, getCategories, getProducts } from "@/app/lib/api";
 import ProductCard from "@/app/components/ProductCard";
-import { STORE } from "@/app/lib/store";
+import { SITE_URL, STORE } from "@/app/lib/store";
 
-export const metadata: Metadata = {
-  title: "Store",
-  alternates: {
-    canonical: "/store",
-  },
-};
+const getCachedCategories = cache(async () => getCategories());
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -38,6 +34,38 @@ function buildQuery(current: StoreParams, overrides: StoreParams) {
   return query ? `/store?${query}` : "/store";
 }
 
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<StoreParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  let categorySlug: string | null = null;
+
+  if (params.category) {
+    try {
+      const categories = await getCachedCategories();
+      const category = categories.find(
+        (item) => item.slug === params.category && item.product_count > 0,
+      );
+      categorySlug = category?.slug ?? null;
+    } catch {
+      // Fall back to the store canonical if category data is offline.
+    }
+  }
+
+  const hasQueryParams = Object.keys(params).length > 0;
+  const canonicalUrl = categorySlug
+    ? `${SITE_URL}/shop?category=${encodeURIComponent(categorySlug)}`
+    : `${SITE_URL}/store`;
+
+  return {
+    title: "Store",
+    alternates: { canonical: canonicalUrl },
+    robots: { index: !hasQueryParams, follow: true },
+  };
+}
+
 export default async function StorePage({
   searchParams,
 }: {
@@ -57,7 +85,7 @@ export default async function StorePage({
       availability: params.availability as "in_stock" | "out_of_stock" | undefined,
       ordering: (params.ordering as "price_asc" | "price_desc" | "newest" | "rating" | "popular") || "newest",
     }),
-    getCategories(),
+    getCachedCategories(),
     getBrands(),
   ]);
 

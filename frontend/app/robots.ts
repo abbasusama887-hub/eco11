@@ -1,12 +1,7 @@
 import type { MetadataRoute } from "next";
+import { SITE_URL } from "@/app/lib/store";
 
 export default function robots(): MetadataRoute.Robots {
-  const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  const siteUrl =
-    rawSiteUrl && rawSiteUrl.length > 0
-      ? rawSiteUrl.replace(/\/+$/, "")
-      : "https://eco11-dun.vercel.app";
-
   return {
     rules: [
       {
@@ -25,6 +20,6 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: `${siteUrl}/sitemap.xml`,
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

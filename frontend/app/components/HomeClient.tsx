@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useWishlist } from "@/app/context/WishlistContext";
 import type { HeroSlide } from "@/app/lib/api";
+import { STORE } from "@/app/lib/store";
 import type { Product } from "@/app/types/product";
 
 // ─── Fallback slides shown when no DB slides exist ────────────────────────
@@ -13,9 +14,9 @@ import type { Product } from "@/app/types/product";
 const FALLBACK_SLIDES: HeroSlide[] = [
   {
     id: -1,
-    badge: "New Arrivals",
-    headline: "Upgrade Your Everyday",
-    sub: "Top brands. Great prices. Better you.",
+    badge: "Footwear",
+    headline: "Find your next pair",
+    sub: STORE.sells,
     cta_label: "Shop Now",
     cta_href: "/shop",
     bg_image: null,
@@ -182,7 +183,7 @@ export default function HomeClient({ products, heroSlides, loadError }: Props) {
               Featured Products
             </h2>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              A considered edit of the latest styles, selected for every step.
+              Browse footwear for performance, comfort, and everyday style.
             </p>
           </div>
           <Link

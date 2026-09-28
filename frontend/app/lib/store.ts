@@ -3,6 +3,8 @@ export interface StorePolicyLink {
   href: string;
 }
 
+export const SITE_URL = "https://eco11-dun.vercel.app";
+
 /** The site has one store. Keep its public information in one small config. */
 export const STORE = {
   name: "Bazar Store",

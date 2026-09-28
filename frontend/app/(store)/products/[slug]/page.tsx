@@ -3,14 +3,8 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getProductBySlug } from "@/app/lib/api";
 import ProductDetailClient from "@/app/(store)/products/[slug]/ProductDetailClient";
-import { STORE } from "@/app/lib/store";
+import { SITE_URL, STORE } from "@/app/lib/store";
 import type { ProductDetail } from "@/app/types/product";
-
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-const siteUrl =
-  rawSiteUrl && rawSiteUrl.length > 0
-    ? rawSiteUrl.replace(/\/+$/, "")
-    : "https://eco11-dun.vercel.app";
 
 const getCachedProduct = cache(async (slug: string): Promise<ProductDetail | null> => {
   try {
@@ -38,6 +32,10 @@ function cleanMetaDescription(rawText?: string | null): string {
   return truncated.trim();
 }
 
+function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
 function getProductImageUrls(product: ProductDetail): string[] {
   const seen = new Set<string>();
   const validImages: string[] = [];
@@ -52,9 +50,14 @@ function getProductImageUrls(product: ProductDetail): string[] {
     const trimmed = candidate.trim();
     if (!trimmed) continue;
     if (trimmed.includes("localhost") || trimmed.includes("127.0.0.1")) continue;
-    if (!seen.has(trimmed)) {
-      seen.add(trimmed);
-      validImages.push(trimmed);
+    try {
+      const absoluteUrl = new URL(trimmed, SITE_URL).toString();
+      if (!seen.has(absoluteUrl)) {
+        seen.add(absoluteUrl);
+        validImages.push(absoluteUrl);
+      }
+    } catch {
+      continue;
     }
   }
 
@@ -68,6 +71,12 @@ function getProductImageUrl(product: ProductDetail): string | null {
 
 function generateBreadcrumbJsonLd(product: ProductDetail, currentSiteUrl: string) {
   const productUrl = `${currentSiteUrl}/products/${encodeURIComponent(product.slug)}`;
+  const category = product.category?.slug && product.category.name
+    ? product.category
+    : null;
+  const categoryUrl = category
+    ? new URL(`${currentSiteUrl}/shop`).toString() + `?category=${encodeURIComponent(category.slug)}`
+    : null;
 
   return {
     "@context": "https://schema.org",
@@ -85,9 +94,19 @@ function generateBreadcrumbJsonLd(product: ProductDetail, currentSiteUrl: string
         name: "Shop",
         item: `${currentSiteUrl}/shop`,
       },
+      ...(category && categoryUrl
+        ? [
+            {
+              "@type": "ListItem",
+              position: 3,
+              name: category.name,
+              item: categoryUrl,
+            },
+          ]
+        : []),
       {
         "@type": "ListItem",
-        position: 3,
+        position: category ? 4 : 3,
         name: product.name,
         item: productUrl,
       },
@@ -98,8 +117,20 @@ function generateBreadcrumbJsonLd(product: ProductDetail, currentSiteUrl: string
 function generateProductJsonLd(product: ProductDetail, currentSiteUrl: string) {
   const canonicalUrl = `${currentSiteUrl}/products/${encodeURIComponent(product.slug)}`;
   const description =
-    cleanText(product.description) || cleanText(product.short_description);
+    cleanText(product.description) ||
+    cleanText(product.short_description) ||
+    cleanText(`${product.name} available at ${STORE.name}.`);
   const images = getProductImageUrls(product);
+  const reviews = Array.isArray(product.reviews)
+    ? product.reviews.filter(
+        (review) =>
+          Number.isFinite(Number(review.rating)) &&
+          Number(review.rating) >= 1 &&
+          Number(review.rating) <= 5 &&
+          typeof review.customer_name === "string" &&
+          review.customer_name.trim().length > 0,
+      )
+    : [];
 
   const isOutOfStock =
     product.is_in_stock === false || product.stock_status === "out_of_stock";
@@ -122,63 +153,59 @@ function generateProductJsonLd(product: ProductDetail, currentSiteUrl: string) {
     jsonLd.image = images.length === 1 ? images[0] : images;
   }
 
+  if (product.category?.name?.trim()) {
+    jsonLd.category = product.category.name.trim();
+  }
+
   if (product.sku && typeof product.sku === "string" && product.sku.trim()) {
     jsonLd.sku = product.sku.trim();
   }
 
-  if (product.brand && typeof product.brand === "object" && product.brand.name) {
+  if (
+    product.brand &&
+    typeof product.brand === "object" &&
+    typeof product.brand.name === "string" &&
+    product.brand.name.trim()
+  ) {
     jsonLd.brand = {
       "@type": "Brand",
       name: product.brand.name.trim(),
     };
   }
 
-  if (
-    product.current_price !== undefined &&
-    product.current_price !== null &&
-    !isNaN(Number(product.current_price))
-  ) {
+  const price = Number(product.current_price);
+  if (product.current_price !== null && Number.isFinite(price)) {
     jsonLd.offers = {
       "@type": "Offer",
       url: canonicalUrl,
       priceCurrency: "PKR",
-      price: String(product.current_price),
+      price: String(price),
       availability,
     };
   }
 
-  if (
-    product.reviews &&
-    Array.isArray(product.reviews) &&
-    product.reviews.length > 0
-  ) {
-    jsonLd.review = product.reviews.map((r) => ({
+  if (reviews.length > 0) {
+    jsonLd.review = reviews.map((r) => ({
       "@type": "Review",
       author: {
         "@type": "Person",
-        name: r.customer_name || "Customer",
+        name: r.customer_name.trim(),
       },
       reviewRating: {
         "@type": "Rating",
-        ratingValue: r.rating,
+        ratingValue: Number(r.rating),
       },
       ...(r.comment ? { reviewBody: cleanText(r.comment) } : {}),
       ...(r.created_at ? { datePublished: r.created_at } : {}),
     }));
-  }
 
-  if (
-    product.average_rating !== null &&
-    product.average_rating !== undefined &&
-    typeof product.average_rating === "number" &&
-    product.reviews &&
-    Array.isArray(product.reviews) &&
-    product.reviews.length > 0
-  ) {
+    const averageRating =
+      reviews.reduce((total, review) => total + Number(review.rating), 0) /
+      reviews.length;
     jsonLd.aggregateRating = {
       "@type": "AggregateRating",
-      ratingValue: product.average_rating,
-      reviewCount: product.reviews.length,
+      ratingValue: Number(averageRating.toFixed(1)),
+      reviewCount: reviews.length,
     };
   }
 
@@ -202,15 +229,16 @@ export async function generateMetadata({
   const title = `${product.name} | ${STORE.name}`;
   const description =
     cleanMetaDescription(product.description) ||
-    cleanMetaDescription(product.short_description);
-  const canonicalUrl = `${siteUrl}/products/${encodeURIComponent(product.slug)}`;
+    cleanMetaDescription(product.short_description) ||
+    cleanMetaDescription(`${product.name} available at ${STORE.name}.`);
+  const canonicalUrl = `${SITE_URL}/products/${encodeURIComponent(product.slug)}`;
   const imageUrl = getProductImageUrl(product);
 
   return {
     title: {
       absolute: title,
     },
-    ...(description ? { description } : {}),
+    description,
     alternates: {
       canonical: canonicalUrl,
     },
@@ -224,22 +252,13 @@ export async function generateMetadata({
       siteName: STORE.name,
       title,
       url: canonicalUrl,
-      ...(description ? { description } : {}),
-      ...(imageUrl
-        ? {
-            images: [
-              {
-                url: imageUrl,
-                alt: product.name,
-              },
-            ],
-          }
-        : {}),
+      description,
+      ...(imageUrl ? { images: [{ url: imageUrl, alt: product.name }] } : {}),
     },
     twitter: {
       card: "summary_large_image",
       title,
-      ...(description ? { description } : {}),
+      description,
       ...(imageUrl ? { images: [imageUrl] } : {}),
     },
   };
@@ -255,8 +274,8 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  const jsonLd = generateProductJsonLd(product, siteUrl);
-  const breadcrumbJsonLd = generateBreadcrumbJsonLd(product, siteUrl);
+  const jsonLd = generateProductJsonLd(product, SITE_URL);
+  const breadcrumbJsonLd = generateBreadcrumbJsonLd(product, SITE_URL);
 
   return (
     <>
@@ -264,13 +283,13 @@ export default async function ProductDetailPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(breadcrumbJsonLd),
+            __html: serializeJsonLd(breadcrumbJsonLd),
           }}
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLd),
+            __html: serializeJsonLd(jsonLd),
           }}
         />
       </section>

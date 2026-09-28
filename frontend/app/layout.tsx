@@ -6,7 +6,7 @@ import { WishlistProvider } from "@/app/context/WishlistContext";
 import { ToastProvider } from "@/app/components/ToastProvider";
 import { CompareProvider } from "@/app/context/CompareContext";
 import { SavedItemsProvider } from "@/app/context/SavedItemsContext";
-import { STORE } from "@/app/lib/store";
+import { SITE_URL, STORE } from "@/app/lib/store";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,22 +19,13 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-const siteUrl =
-  rawSiteUrl && rawSiteUrl.length > 0
-    ? rawSiteUrl.replace(/\/+$/, "")
-    : "https://eco11-dun.vercel.app";
-
 export const metadata: Metadata = {
-  metadataBase: new URL(siteUrl),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: STORE.name,
     template: `%s | ${STORE.name}`,
   },
   description: STORE.description,
-  alternates: {
-    canonical: `${siteUrl}/`,
-  },
   robots: {
     index: true,
     follow: true,
@@ -45,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: siteUrl,
+    url: `${SITE_URL}/`,
     siteName: STORE.name,
     title: STORE.name,
     description: STORE.description,

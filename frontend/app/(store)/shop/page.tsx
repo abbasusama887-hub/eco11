@@ -1,14 +1,75 @@
+import { cache } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getBrands, getCategories, getProducts } from "@/app/lib/api";
 import ProductCard from "@/app/components/ProductCard";
+import { SITE_URL, STORE } from "@/app/lib/store";
+import type { Category } from "@/app/types/product";
 
-export const metadata: Metadata = {
-  title: "Shop",
-  alternates: {
-    canonical: "/shop",
-  },
+type ShopPageProps = {
+  searchParams: Promise<Record<string, string | undefined>>;
 };
+
+const getCachedCategories = cache(async () => getCategories());
+
+function getCategoryUrl(slug: string): string {
+  const categoryUrl = new URL(`${SITE_URL}/shop`);
+  categoryUrl.searchParams.set("category", slug);
+  return categoryUrl.toString();
+}
+
+function serializeJsonLd(value: unknown): string {
+  return JSON.stringify(value).replace(/</g, "\\u003c");
+}
+
+export async function generateMetadata({ searchParams }: ShopPageProps): Promise<Metadata> {
+  const params = await searchParams;
+  let categories: Category[] = [];
+
+  try {
+    categories = await getCachedCategories();
+  } catch {
+    // Keep the base shop metadata available if category data is offline.
+  }
+
+  const category = categories.find(
+    (item) => item.slug === params.category && item.product_count > 0,
+  );
+  const categoryOnly =
+    Boolean(category) && Object.keys(params).every((key) => key === "category");
+  const isBaseShop = Object.keys(params).length === 0;
+  const title = category
+    ? `${category.name} | Bazar Store`
+    : "Shop Shoes Online | Bazar Store";
+  const description = category
+    ? `Explore ${category.name} products at Bazar Store. Browse footwear for comfort, performance, and everyday style.`
+    : "Shop footwear online at Bazar Store. Explore shoes for performance, comfort, and everyday style across our catalogue.";
+  const canonicalUrl = category
+    ? getCategoryUrl(category.slug)
+    : `${SITE_URL}/shop`;
+
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: canonicalUrl },
+    robots: { index: isBaseShop || categoryOnly, follow: true },
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      siteName: STORE.name,
+      title,
+      description,
+      url: canonicalUrl,
+      images: [{ url: new URL(STORE.logo, SITE_URL).toString(), alt: `${STORE.name} logo` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [new URL(STORE.logo, SITE_URL).toString()],
+    },
+  };
+}
 
 const SORT_OPTIONS = [
   { label: "Newest", value: "newest" },
@@ -40,9 +101,7 @@ function buildQuery(
 
 export default async function ShopPage({
   searchParams,
-}: {
-  searchParams: Promise<Record<string, string | undefined>>;
-}) {
+}: ShopPageProps) {
   const params = await searchParams;
 
   const [productsResult, categoriesResult, brandsResult] = await Promise.allSettled([
@@ -58,7 +117,7 @@ export default async function ShopPage({
       availability: params.availability as "in_stock" | "out_of_stock" | undefined,
       ordering: (params.ordering as "price_asc" | "price_desc" | "newest" | "rating" | "popular") || "newest",
     }),
-    getCategories(),
+    getCachedCategories(),
     getBrands(),
   ]);
 
@@ -66,9 +125,35 @@ export default async function ShopPage({
   const loadError = productsResult.status === "rejected" ? String(productsResult.reason) : null;
   const categories = categoriesResult.status === "fulfilled" ? categoriesResult.value : [];
   const brands = brandsResult.status === "fulfilled" ? brandsResult.value : [];
+  const selectedCategory = categories.find(
+    (category) => category.slug === params.category && category.product_count > 0,
+  );
+  const categoryBreadcrumbJsonLd = selectedCategory
+    ? {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+          { "@type": "ListItem", position: 2, name: "Shop", item: `${SITE_URL}/shop` },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: selectedCategory.name,
+            item: getCategoryUrl(selectedCategory.slug),
+          },
+        ],
+      }
+    : null;
 
   return (
-    <main className="relative flex-1 overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
+    <>
+      {categoryBreadcrumbJsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: serializeJsonLd(categoryBreadcrumbJsonLd) }}
+        />
+      )}
+      <main className="relative flex-1 overflow-hidden bg-slate-50 text-slate-950 dark:bg-slate-950 dark:text-white">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[460px] bg-[radial-gradient(circle_at_12%_8%,rgba(34,211,238,0.08),transparent_32%),radial-gradient(circle_at_92%_18%,rgba(37,99,235,0.06),transparent_28%)]" />
       <div className="relative mx-auto flex w-full max-w-[1440px] flex-1 flex-col px-4 py-9 sm:px-6 lg:px-10 lg:py-12">
         <nav aria-label="Breadcrumb" className="mb-6 text-xs text-slate-500 dark:text-slate-400">
@@ -92,7 +177,7 @@ export default async function ShopPage({
                 : "All Shoes"}
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Explore premium footwear for performance, comfort, and everyday style.
+              Browse footwear for performance, comfort, and everyday style.
             </p>
           </div>
           <div className="text-sm font-medium text-slate-500 dark:text-slate-400">
@@ -264,7 +349,8 @@ export default async function ShopPage({
         </div>
       </div>
       </div>
-    </main>
+      </main>
+    </>
   );
 }
 

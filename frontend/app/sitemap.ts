@@ -1,29 +1,25 @@
 import type { MetadataRoute } from "next";
-import { getProducts } from "@/app/lib/api";
+import { getCategories, getProducts } from "@/app/lib/api";
+import { SITE_URL } from "@/app/lib/store";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const rawSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  const siteUrl =
-    rawSiteUrl && rawSiteUrl.length > 0
-      ? rawSiteUrl.replace(/\/+$/, "")
-      : "https://eco11-dun.vercel.app";
-
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${siteUrl}/`,
+      url: `${SITE_URL}/`,
     },
     {
-      url: `${siteUrl}/shop`,
+      url: `${SITE_URL}/shop`,
     },
     {
-      url: `${siteUrl}/store`,
+      url: `${SITE_URL}/store`,
     },
     {
-      url: `${siteUrl}/help`,
+      url: `${SITE_URL}/help`,
     },
   ];
 
   let productRoutes: MetadataRoute.Sitemap = [];
+  let categoryRoutes: MetadataRoute.Sitemap = [];
 
   try {
     const response = await getProducts();
@@ -40,12 +36,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         return true;
       })
       .map((product) => ({
-        url: `${siteUrl}/products/${encodeURIComponent(product.slug.trim())}`,
+        url: `${SITE_URL}/products/${encodeURIComponent(product.slug.trim())}`,
       }));
   } catch (error) {
-    // If backend is unreachable or building offline, do not crash sitemap generation
     console.error("Failed to fetch products for sitemap:", error);
+    return staticRoutes;
   }
 
-  return [...staticRoutes, ...productRoutes];
+  try {
+    const categories = await getCategories();
+    const seenSlugs = new Set<string>();
+    categoryRoutes = categories
+      .filter((category) => {
+        const slug = category?.slug?.trim();
+        if (!slug || category.product_count <= 0 || seenSlugs.has(slug)) return false;
+        seenSlugs.add(slug);
+        return true;
+      })
+      .map((category) => {
+        const categoryUrl = new URL(`${SITE_URL}/shop`);
+        categoryUrl.searchParams.set("category", category.slug.trim());
+        return { url: categoryUrl.toString() };
+      });
+  } catch (error) {
+    console.error("Failed to fetch categories for sitemap:", error);
+  }
+
+  return [...staticRoutes, ...categoryRoutes, ...productRoutes];
 }
