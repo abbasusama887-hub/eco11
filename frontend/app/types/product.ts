@@ -106,6 +106,7 @@ export interface ProductListResponse {
 }
 
 export interface ProductFilters {
+  page?: number;
   search?: string;
   category?: string;
   brand?: string;

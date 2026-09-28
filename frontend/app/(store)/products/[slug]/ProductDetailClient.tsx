@@ -252,7 +252,12 @@ export default function ProductDetailClient({ product }: { product: ProductDetai
           <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-700 dark:text-cyan-300">
             {product.brand.name}
           </span>
-          <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{product.category.name}</p>
+          <Link
+            href={`/shop?category=${encodeURIComponent(product.category.slug)}`}
+            className="mt-3 block text-xs text-slate-500 dark:text-slate-400"
+          >
+            {product.category.name}
+          </Link>
           <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 dark:text-white sm:text-4xl">
             {product.name}
           </h1>

@@ -134,7 +134,7 @@ export default function Footer() {
 
         <div className="mt-12 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs leading-5 text-slate-500">
-            © {new Date().getFullYear()} bazar. All rights reserved.
+            © {new Date().getFullYear()} Bazar Store. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 sm:gap-5">
             <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Privacy Policy</Link>

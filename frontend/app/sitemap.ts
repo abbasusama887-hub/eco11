@@ -2,6 +2,8 @@ import type { MetadataRoute } from "next";
 import { getCategories, getProducts } from "@/app/lib/api";
 import { SITE_URL } from "@/app/lib/store";
 
+export const dynamic = "force-dynamic";
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes: MetadataRoute.Sitemap = [
     {
@@ -18,29 +20,39 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  let productRoutes: MetadataRoute.Sitemap = [];
+  const productRoutes: MetadataRoute.Sitemap = [];
   let categoryRoutes: MetadataRoute.Sitemap = [];
+  let productsUnavailable = false;
 
   try {
-    const response = await getProducts();
-    const products = response?.results ?? [];
-
     const seenSlugs = new Set<string>();
+    let page = 1;
+    let hasNextPage = true;
 
-    productRoutes = products
-      .filter((product) => {
-        if (!product?.slug || typeof product.slug !== "string") return false;
-        const slug = product.slug.trim();
-        if (!slug || seenSlugs.has(slug)) return false;
-        seenSlugs.add(slug);
-        return true;
-      })
-      .map((product) => ({
-        url: `${SITE_URL}/products/${encodeURIComponent(product.slug.trim())}`,
-      }));
+    while (hasNextPage) {
+      const response = await getProducts({ page });
+      const products = response?.results ?? [];
+
+      productRoutes.push(
+        ...products
+          .filter((product) => {
+            if (!product?.slug || typeof product.slug !== "string") return false;
+            const slug = product.slug.trim();
+            if (!slug || seenSlugs.has(slug)) return false;
+            seenSlugs.add(slug);
+            return true;
+          })
+          .map((product) => ({
+            url: `${SITE_URL}/products/${encodeURIComponent(product.slug.trim())}`,
+          })),
+      );
+
+      hasNextPage = Boolean(response?.next);
+      page += 1;
+    }
   } catch (error) {
     console.error("Failed to fetch products for sitemap:", error);
-    return staticRoutes;
+    productsUnavailable = true;
   }
 
   try {
@@ -59,7 +71,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         return { url: categoryUrl.toString() };
       });
   } catch (error) {
-    console.error("Failed to fetch categories for sitemap:", error);
+    if (!productsUnavailable) {
+      console.error("Failed to fetch categories for sitemap:", error);
+    }
   }
 
   return [...staticRoutes, ...categoryRoutes, ...productRoutes];
