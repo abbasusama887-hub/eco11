@@ -93,46 +93,18 @@ export default function HomeClient({ products, heroSlides, loadError }: Props) {
           </div>
         ))}
 
-        {/* Slide content — existing data presented in a glass panel */}
-        <div className="relative z-10 flex h-full max-w-2xl flex-col justify-center px-5 py-10 sm:px-10 md:px-16">
-          <div className="w-full rounded-3xl border border-white/70 bg-white/75 p-5 text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.9),0_18px_45px_rgba(15,23,42,0.16)] backdrop-blur-xl sm:p-8 md:max-w-xl">
-            <span
-              className="inline-flex w-fit items-center rounded-full border border-slate-200 px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-slate-950 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] backdrop-blur-md sm:text-xs"
-              style={{ backgroundColor: `${accentHex}bb` }}
-            >
-              {slide.badge}
-            </span>
-
-            <h1 className="mt-4 max-w-xl text-3xl font-extrabold leading-[1.05] tracking-tight text-slate-950 sm:text-5xl md:text-6xl">
-              Bazar Store
-              <span className="mt-2 block text-2xl font-bold tracking-tight sm:text-4xl md:text-5xl">
-                Shoes for Every Step
-              </span>
-            </h1>
-
-            {slide.headline && (
-              <p className="mt-4 max-w-lg text-sm leading-6 text-slate-700 sm:text-base">
-                {slide.headline}
-              </p>
-            )}
-
-            {slide.sub && (
-              <p className="mt-2 max-w-lg text-sm leading-6 text-slate-700 sm:text-base">
-                {slide.sub}
-              </p>
-            )}
-
-            <Link
-              href={slide.cta_href}
-              className="group/cta mt-6 inline-flex w-fit items-center gap-2 rounded-xl border border-slate-900/10 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-[0_12px_28px_rgba(34,211,238,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-              style={{ backgroundColor: `${accentHex}dd` }}
-            >
-              {slide.cta_label}
-              <svg className="transition-transform duration-300 group-hover/cta:translate-x-1" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </Link>
-          </div>
+        {/* Slide content */}
+        <div className="absolute bottom-5 right-5 z-10 sm:bottom-8 sm:right-8 md:bottom-10 md:right-10">
+          <Link
+            href={slide.cta_href}
+            className="group/cta inline-flex w-fit items-center gap-2 rounded-xl border border-slate-900/10 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)] transition-all duration-300 hover:-translate-y-0.5 hover:border-cyan-300 hover:shadow-[0_12px_28px_rgba(34,211,238,0.2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-300 focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+            style={{ backgroundColor: `${accentHex}dd` }}
+          >
+            {slide.cta_label}
+            <svg className="transition-transform duration-300 group-hover/cta:translate-x-1" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M5 12h13M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </Link>
         </div>
 
         {slides.length > 1 && (
