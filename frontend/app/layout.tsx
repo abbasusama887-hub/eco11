@@ -23,8 +23,8 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: STORE.name,
-    template: `%s | ${STORE.name}`,
+    default: "NDPS",
+    template: "%s | NDPS",
   },
   description: STORE.description,
   robots: {
@@ -53,11 +53,6 @@ export const metadata: Metadata = {
     title: STORE.name,
     description: STORE.description,
     images: [STORE.logo],
-  },
-  icons: {
-    icon: STORE.logo,
-    shortcut: STORE.logo,
-    apple: STORE.logo,
   },
 };
 

@@ -42,7 +42,7 @@ export async function generateMetadata({ searchParams }: ShopPageProps): Promise
     ? `${category.name} | Bazar Store`
     : "Shop Shoes Online | Bazar Store";
   const description = category
-    ? `Explore ${category.name} products at Bazar Store. Browse footwear for comfort, performance, and everyday style.`
+    ? `Browse ${category.product_count} ${category.name} ${category.product_count === 1 ? "product" : "products"} at Bazar Store. Open a product to check its details, sizes, price, and availability.`
     : "Shop footwear online at Bazar Store. Explore shoes for performance, comfort, and everyday style across our catalogue.";
   const canonicalUrl = category
     ? getCategoryUrl(category.slug)
@@ -177,7 +177,9 @@ export default async function ShopPage({
                 : "All Shoes"}
             </h1>
             <p className="mt-2 max-w-xl text-sm leading-6 text-slate-500 dark:text-slate-400">
-              Browse footwear for performance, comfort, and everyday style.
+              {selectedCategory
+                ? `Browse ${selectedCategory.product_count} ${selectedCategory.name} ${selectedCategory.product_count === 1 ? "product" : "products"}. Open a product to check its details, sizes, price, and availability.`
+                : "Browse footwear for performance, comfort, and everyday style."}
             </p>
           </div>
           <div className="text-sm font-medium text-slate-500 dark:text-slate-400">

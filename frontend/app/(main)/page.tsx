@@ -4,7 +4,7 @@ import HomeClient from "@/app/components/HomeClient";
 import { SITE_URL, STORE } from "@/app/lib/store";
 import type { Product } from "@/app/types/product";
 
-const homeTitle = "Bazar Store | Shop Shoes for Every Step";
+const homeTitle = "NDPS";
 const homeDescription =
   "Shop shoes online at Bazar Store, with footwear for performance, comfort, and everyday style. Explore our collection and find your next pair.";
 

@@ -204,6 +204,13 @@ CORS_ALLOWED_ORIGINS = [
 
 UNFOLD = {
     "SITE_TITLE": "NDPS Admin",
+    "SITE_FAVICONS": [
+        {
+            "rel": "icon",
+            "href": "/static/api/admin/admin-panel.png",
+            "type": "image/png",
+        },
+    ],
     "SITE_HEADER": "NDPS Store",
     "SITE_SYMBOL": "storefront",  # Material icon shown next to the site name
     "STYLES": ["/static/api/admin/custom_admin.css"],
