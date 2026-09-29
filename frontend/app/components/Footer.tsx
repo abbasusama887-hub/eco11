@@ -77,33 +77,33 @@ function FacebookIcon() {
 
 export default function Footer() {
   return (
-    <footer className="relative overflow-hidden border-t border-slate-200/80 bg-white/80 text-slate-950 shadow-[0_-18px_48px_rgba(15,23,42,0.1)] backdrop-blur-2xl">
+    <footer className="relative overflow-hidden border-t border-white/20 bg-black text-white shadow-[0_-18px_48px_rgba(15,23,42,0.1)]">
       <div className="relative mx-auto w-full max-w-7xl px-4 py-14 sm:px-6 lg:py-16">
         <div className="grid grid-cols-2 gap-x-8 gap-y-12 sm:grid-cols-4 lg:gap-x-16">
           <div className="col-span-2 sm:col-span-1">
-            <Logo className="[&>span]:!text-slate-950" />
-            <p className="mt-5 max-w-xs text-sm leading-6 text-slate-600">
+            <Logo className="[&>span]:!text-white" />
+            <p className="mt-5 max-w-xs text-sm leading-6 text-white">
               Shoes for every step — running, courts, and the street in between.
             </p>
             <div className="mt-6 flex items-center gap-2.5">
               <a
                 href="#"
                 aria-label="Instagram"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/60 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-50 hover:text-cyan-700 hover:shadow-[0_8px_24px_rgba(34,211,238,0.14)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/50 hover:bg-white/10 hover:text-white hover:shadow-[0_8px_24px_rgba(255,255,255,0.08)]"
               >
                 <InstagramIcon />
               </a>
               <a
                 href="#"
                 aria-label="X (Twitter)"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/60 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-50 hover:text-cyan-700 hover:shadow-[0_8px_24px_rgba(34,211,238,0.14)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/50 hover:bg-white/10 hover:text-white hover:shadow-[0_8px_24px_rgba(255,255,255,0.08)]"
               >
                 <XIcon />
               </a>
               <a
                 href="#"
                 aria-label="Facebook"
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white/60 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] transition-all duration-200 hover:-translate-y-0.5 hover:border-cyan-300/50 hover:bg-cyan-50 hover:text-cyan-700 hover:shadow-[0_8px_24px_rgba(34,211,238,0.14)]"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/25 bg-white/5 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/50 hover:bg-white/10 hover:text-white hover:shadow-[0_8px_24px_rgba(255,255,255,0.08)]"
               >
                 <FacebookIcon />
               </a>
@@ -112,7 +112,7 @@ export default function Footer() {
 
           {FOOTER_LINKS.map((group) => (
             <div key={group.heading}>
-              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-950">
+              <h3 className="text-xs font-semibold uppercase tracking-[0.16em] text-white">
                 {group.heading}
               </h3>
               <ul className="mt-5 space-y-3">
@@ -120,10 +120,10 @@ export default function Footer() {
                   <li key={link.label}>
                     <Link
                       href={link.href}
-                      className="group relative inline-block text-sm leading-6 text-slate-600 transition-colors duration-200 hover:text-cyan-700"
+                      className="group relative inline-block text-sm leading-6 text-white transition-colors duration-200 hover:text-white/70"
                     >
                       {link.label}
-                      <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-cyan-300 transition-all duration-200 group-hover:w-full" />
+                      <span className="absolute -bottom-0.5 left-0 h-px w-0 bg-white transition-all duration-200 group-hover:w-full" />
                     </Link>
                   </li>
                 ))}
@@ -132,15 +132,15 @@ export default function Footer() {
           ))}
         </div>
 
-        <div className="mt-12 flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs leading-5 text-slate-500">
+        <div className="mt-12 flex flex-col gap-4 border-t border-white/20 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs leading-5 text-white">
             © {new Date().getFullYear()} Bazar Store. All rights reserved.
           </p>
           <div className="flex flex-wrap gap-4 sm:gap-5">
-            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Privacy Policy</Link>
-            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Terms</Link>
-            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Shipping Policy</Link>
-            <Link href="/" className="text-xs text-slate-500 transition-colors hover:text-cyan-700">Return Policy</Link>
+            <Link href="/" className="text-xs text-white transition-colors hover:text-white/70">Privacy Policy</Link>
+            <Link href="/" className="text-xs text-white transition-colors hover:text-white/70">Terms</Link>
+            <Link href="/" className="text-xs text-white transition-colors hover:text-white/70">Shipping Policy</Link>
+            <Link href="/" className="text-xs text-white transition-colors hover:text-white/70">Return Policy</Link>
           </div>
         </div>
       </div>
