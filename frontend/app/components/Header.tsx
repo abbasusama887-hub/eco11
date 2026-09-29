@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { useRouter } from "next/navigation";
 import Logo from "@/app/components/Logo";
 import { useCart } from "@/app/context/CartContext";
@@ -96,6 +96,13 @@ export default function Header() {
   const { itemCount: wishlistCount } = useWishlist();
   const router = useRouter();
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const logoBoxRef = useRef<HTMLDivElement>(null);
+  const actionsBoxRef = useRef<HTMLDivElement>(null);
+  const previousHeaderPositions = useRef<{
+    logo: { left: number; top: number };
+    actions: { left: number; top: number };
+  } | null>(null);
+  const scrolledRef = useRef(false);
 
   // Close user dropdown on outside click
   useEffect(() => {
@@ -110,12 +117,54 @@ export default function Header() {
 
   useEffect(() => {
     function handleScroll() {
-      setIsScrolled(window.scrollY > 12);
+      const nextScrolled = window.scrollY > 12;
+      if (nextScrolled === scrolledRef.current) return;
+
+      const logo = logoBoxRef.current?.getBoundingClientRect();
+      const actions = actionsBoxRef.current?.getBoundingClientRect();
+      if (logo && actions) {
+        previousHeaderPositions.current = {
+          logo: { left: logo.left, top: logo.top },
+          actions: { left: actions.left, top: actions.top },
+        };
+      }
+
+      scrolledRef.current = nextScrolled;
+      setIsScrolled(nextScrolled);
     }
     handleScroll();
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  useLayoutEffect(() => {
+    const previous = previousHeaderPositions.current;
+    if (!previous) return;
+    previousHeaderPositions.current = null;
+
+    const boxes: Array<[
+      HTMLDivElement | null,
+      { left: number; top: number },
+    ]> = [
+      [logoBoxRef.current, previous.logo],
+      [actionsBoxRef.current, previous.actions],
+    ];
+    boxes.forEach(([element, position]) => {
+      if (!element) return;
+      const current = element.getBoundingClientRect();
+      const offsetX = position.left - current.left;
+      const offsetY = position.top - current.top;
+      if (Math.abs(offsetX) < 1 && Math.abs(offsetY) < 1) return;
+
+      element.animate(
+        [
+          { transform: `translate(${offsetX}px, ${offsetY}px)` },
+          { transform: "translate(0, 0)" },
+        ],
+        { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+      );
+    });
+  }, [isScrolled]);
 
   function handleLogout() {
     setUserMenuOpen(false);
@@ -125,18 +174,39 @@ export default function Header() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 bg-[#FFFFFF] px-2 pt-2 sm:px-3">
+    <header
+      className={`fixed inset-x-0 top-0 z-50 h-16 px-2 pt-2 transition-colors duration-500 sm:px-3 ${
+        isScrolled ? "bg-transparent" : "bg-[#FFFFFF]"
+      }`}
+    >
       <div
-        className={`flex h-14 w-full items-center justify-between rounded-2xl border px-3 text-slate-950 transition-[background-color,border-color,box-shadow,backdrop-filter] duration-500 sm:px-5 ${
+        dir={isScrolled ? "ltr" : undefined}
+        className={`relative flex h-14 w-full items-center justify-between text-slate-950 transition-[background-color,border-color,border-radius,box-shadow,padding,backdrop-filter] duration-500 ${
           isScrolled
-            ? "border-slate-300/80 bg-white/90 shadow-[0_12px_32px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-3xl"
-            : "border-white/70 bg-white/75 shadow-[0_8px_24px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl"
+            ? "border-transparent bg-transparent px-0 shadow-none backdrop-blur-none"
+            : "rounded-2xl border border-white/70 bg-white/75 px-3 shadow-[0_8px_24px_rgba(15,23,42,0.12),inset_0_1px_0_rgba(255,255,255,0.8)] backdrop-blur-2xl sm:px-5"
         }`}
       >
-        <Logo className="[&>span]:!text-slate-950" />
+        <div
+          ref={logoBoxRef}
+          className={`flex h-12 shrink-0 items-center rounded-2xl transition-[background-color,box-shadow,padding] duration-500 ${
+            isScrolled
+              ? "bg-white/90 px-3 shadow-[0_12px_32px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-slate-300/80 backdrop-blur-3xl"
+              : ""
+          }`}
+        >
+          <Logo className="[&>span]:!text-slate-950" />
+        </div>
 
-
-        <div className="flex items-center gap-0.5 sm:gap-1">
+        <div
+          ref={actionsBoxRef}
+          dir={isScrolled ? "auto" : undefined}
+          className={`flex h-12 shrink-0 items-center gap-0.5 rounded-2xl transition-[background-color,box-shadow,padding] duration-500 sm:gap-1 ${
+            isScrolled
+              ? "bg-white/90 px-1 shadow-[0_12px_32px_rgba(15,23,42,0.16),inset_0_1px_0_rgba(255,255,255,0.8)] ring-1 ring-slate-300/80 backdrop-blur-3xl"
+              : ""
+          }`}
+        >
           {/* Search */}
           <SearchAutocomplete className="hidden sm:block" />
 
